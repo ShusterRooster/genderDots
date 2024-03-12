@@ -2,18 +2,16 @@ import DotManager from "./DotManager.js";
 import ColorManager from "./ColorManager.js";
 import * as helper from './HelperFunctions'
 import * as paper from 'paper';
+import {constrain, random} from "./HelperFunctions";
+import {Point, Color} from "paper";
+import * as Path from "path";
 
 function Appendage(x: number, y: number, radius: number, width: number, height: number): paper.Path.Line {
-    this.x = x
-    this.y = y
-    this.radius = radius
-    this.width = width
-    this.height = height
 
     //left line
     const leftLine = new paper.Path.Line({
         name: "leftLine",
-        from: [this.x, this.y],
+        from: [x, y],
         to: [this.x, this.y - this.height]
     })
 
@@ -45,23 +43,29 @@ function Appendage(x: number, y: number, radius: number, width: number, height: 
 export default class GenderShape {
     //variables dependent on view being loaded
     point: paper.Point
+    size: number
+
     protected scalePoint: paper.Point
-    protected distanceObj: number
-
-    protected rotation = helper.random(0, 360)
-    isGrowing = false
-    doneGrowing = false
-
-    isScaling = false
-    doneScaling = false
+    protected _distance: number
+    protected _vector: paper.Point
+    protected _shape: any
+    protected colorMan: ColorManager
 
     protected growSpeed = random(0.5, 1.25)
     protected scaleSpeed = random(2, 5)
+    protected rotation = random(0, 360)
 
-    size
-    acceleration = new paper.Point(0, 0)
-    velocity = new paper.Point(0, 0)
-    #vector
+    penis: Appendage
+
+    dotManager: DotManager
+
+    isGrowing = false
+    doneGrowing = false
+    isScaling = false
+    doneScaling = false
+
+    acceleration = new Point(0, 0)
+    velocity = new Point(0, 0)
 
     collisionEnabled = false
     isColliding = false
@@ -71,119 +75,127 @@ export default class GenderShape {
     shapeArr = []
     lineArr = []
 
-    #currentShape
-    #colorMan
-    dotManager
+    radius: number
+    genitalWidth: number
+    genitalHeight = 0
+    endGenitalHeight: number
 
-    constructor(dotManager, point, radius, distance, gender, genitalWidth, genitalHeight, innerColor, outerColor) {
+    constructor(dotManager: DotManager,
+                point?: paper.Point,
+                radius?: number,
+                distance?: number,
+                genitalWidth?: number,
+                genitalHeight?: number,
+                innerColor?: paper.Color,
+                outerColor?: paper.Color) {
+
         this.dotManager = dotManager
 
-        this.radius = radius || random(DotManager.minRadius, DotManager.maxRadius)
-        this.genitalWidth = genitalWidth || random(this.radius / DotManager.genitalDiv, this.radius)
-        this.genitalHeight = 0
-        this.endGenitalHeight = genitalHeight || random(this.radius / DotManager.genitalDiv, this.radius)
+        this.radius = !radius ? random(DotManager.minRadius, DotManager.maxRadius) : radius
+        this.genitalWidth = !genitalWidth ? random(this.radius / DotManager.genitalDiv, this.radius) : genitalWidth
+        this.endGenitalHeight = !genitalHeight ? random(this.radius / DotManager.genitalDiv, this.radius) : genitalHeight
 
         const viewSize = paper.project.view.viewSize
-        this.point = point || new paper.Point.random().multiply(viewSize)
-        this.#scalePoint = new paper.Point(random(-viewSize.width, viewSize.width), random(-viewSize.height, viewSize.height))
-        this.#distanceObj = distance || random(DotManager.minDistance, viewSize.width)
+        this.point = !point ? Point.random().multiply(viewSize) : point
+        this._distance = !distance ? random(DotManager.minDistance, viewSize.width): distance
+        this.scalePoint = new Point(random(-viewSize.width, viewSize.width), random(-viewSize.height, viewSize.height))
 
-        this.#scaleSpeed = this.#distanceObj / this.#scalePoint.subtract(this.point).length
-        this.#colorMan = new ColorManager(this, innerColor, outerColor)
+        this.scaleSpeed = this._distance / this.scalePoint.subtract(this.point).length
+        this.colorMan = new ColorManager(this, innerColor, outerColor)
     }
 
-    #applyVisibility(item) {
+    protected applyVisibility(item: paper.Path) {
         item.fillColor = this.innerColor
         item.shadowColor = this.outerColor
         item.strokeColor = this.outerColor
         item.strokeWidth = this.colorManager.strokeWidth
 
         item.shadowBlur = this.colorManager.shadowBlur
-        item.shadowOffset = 0
+        item.shadowOffset = new Point(0, 0)
     }
 
-    #addToArr(arr, ...args) {
+    protected addToArr(arr: any[], ...args: any[]) {
         args.forEach((arg) => {
             arr.push(arg)
         })
 
-        this.#cleanUpAll()
+        this.cleanUpAll()
     }
 
     //deletes everything but last element in array unless specified otherwise
-    #scrubArr(arr, distance = 1) {
+    protected scrubArr(arr: any[], distance = 1) {
         for (let i = 0; i < arr.length - distance; i++) {
             arr[i].remove()
             arr.splice(i, 1)
         }
     }
 
-    #cleanUpAll() {
-        this.#scrubArr(this.appendageArr, 0)
-        this.#scrubArr(this.circleArr)
-        this.#scrubArr(this.shapeArr)
-        this.#scrubArr(this.lineArr)
+    protected cleanUpAll() {
+        this.scrubArr(this.appendageArr, 0)
+        this.scrubArr(this.circleArr)
+        this.scrubArr(this.shapeArr)
+        this.scrubArr(this.lineArr)
     }
 
     get distance(){
-        return this.#distanceObj
+        return this._distance
     }
 
-    set distance(dist){
-        this.#distanceObj = dist
+    set distance(distance: number){
+        this._distance = distance
     }
 
     get vector() {
-        return this.#vector
+        return this._vector
     }
 
     set vector(vector) {
         const len = constrain(vector.length, DotManager.minVector, DotManager.maxVector)
-        this.#vector = new paper.Point({length: len, angle: vector.angle})
+        this._vector = new Point({length: len, angle: vector.angle})
 
         this.drawVector()
     }
 
     get colorManager() {
-        return this.#colorMan
+        return this.colorMan
     }
 
     get innerColor() {
         return this.colorManager.innerColor
     }
 
-    set innerColor(color) {
+    set innerColor(color: paper.Color) {
         this.colorManager.innerColor = color
-        this.#applyVisibility(this.shape)
+        this.applyVisibility(this.shape)
     }
 
     get outerColor() {
         return this.colorManager.outerColor
     }
 
-    set outerColor(color) {
+    set outerColor(color: paper.Color) {
         this.colorManager.outerColor = color
-        this.#applyVisibility(this.shape)
+        this.applyVisibility(this.shape)
     }
 
     get position() {
         return this.shape.position
     }
 
-    set position(position) {
+    set position(position: paper.Point) {
         this.shape.position = position
     }
 
     get shape() {
-        return this.#currentShape
+        return this._shape
     }
 
     set shape(shape) {
-        this.#currentShape = shape
-        this.#currentShape.name = "currentShape"
-        this.shapeArr.push(this.#currentShape)
+        this._shape = shape
+        this._shape.name = "currentShape"
+        this.shapeArr.push(this._shape)
 
-        this.#addToArr(this.shapeArr, this.#currentShape)
+        this.addToArr(this.shapeArr, this._shape)
     }
 
     get infoString() {
@@ -217,23 +229,23 @@ export default class GenderShape {
     }
 
     genCircle(visible = true, point = this.point, radius = this.radius) {
-        const circle = new paper.Path.Circle(point, radius)
+        const circle = new Path.Circle(point, radius)
         circle.name = "Circle"
 
         if (visible) {
-            this.#applyVisibility(circle)
+            this.applyVisibility(circle)
         }
 
-        this.#addToArr(this.circleArr, circle)
+        this.addToArr(this.circleArr, circle)
         return circle
     }
 
     collisionDetected(value = true) {
         this.isColliding = value
-        this.#currentShape.fillColor = "pink"
+        this.shape.fillColor = "pink"
     }
 
-    genGenitalia(height) {
+    genGenitalia(height: number) {
         const tolerance = this.genitalWidth / 2
         const xPos = this.point.x - this.genitalWidth / 2
         const yPosButt = this.point.y + this.radius + tolerance

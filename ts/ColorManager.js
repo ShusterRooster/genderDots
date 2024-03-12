@@ -1,5 +1,3 @@
-import {random} from "./HelperFunctions.js";
-
 export default class ColorManager {
     static attractionTypes = ["similar", "diff", "random"]
     static saturation = 0.1
