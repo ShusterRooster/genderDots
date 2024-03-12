@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "esm": "^3.2.25",
+    "paper": "^0.12.17"
+  },
+  "main": "./main.js",
+  "type": "module",
+  "devDependencies": {
+    "typescript": "^5.4.2"
+  }
+}
