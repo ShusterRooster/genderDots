@@ -1,33 +1,33 @@
 import DotManager from "./DotManager.js";
 import ColorManager from "./ColorManager.js";
+import {consoleLog, constrain, map, random} from "./HelperFunctions.js";
+import * as paper from "paper";
 
-function Appendage(x, y, radius, width, height) {
-    this.x = x
-    this.y = y
-    this.radius = radius
-    this.width = width
-    this.height = height
+function Appendage(x: number,
+                   y: number,
+                   width: number,
+                   height: number): paper.Path.Line {
 
     //left line
     const leftLine = new paper.Path.Line({
         name: "leftLine",
-        from: [this.x, this.y],
-        to: [this.x, this.y - this.height]
+        from: [x, y],
+        to: [x, y - height]
     })
 
     //middle arc
     const midArc = new paper.Path.Arc({
         name: "midArc",
-        from: [this.x, this.y - this.height],
-        through: [this.x + this.width / 2, (this.y - this.height) - this.width / 2],
-        to: [this.x + this.width, this.y - this.height]
+        from: [x, y - height],
+        through: [x + width / 2, (y - height) - width / 2],
+        to: [x + width, y - height]
     })
 
     //right line
     const rightLine = new paper.Path.Line({
         name: "rightLine",
-        from: [this.x + this.width, this.y - this.height],
-        to: [this.x + this.width, this.y]
+        from: [x + width, y - height],
+        to: [x + width, y]
     })
 
     //joins paths together then returns
@@ -42,146 +42,173 @@ function Appendage(x, y, radius, width, height) {
 
 export default class GenderShape {
     //variables dependent on view being loaded
-    point
-    #scalePoint
-    #distanceObj
+    point: paper.Point
 
-    #rotation = random(0, 360)
+    protected scalePoint: paper.Point
+    protected _distance: number
+    protected _vector = new paper.Point(0, 0)
+    protected _shape: any
+    protected colorMan: ColorManager
+
+    protected growSpeed = random(0.5, 1.25)
+    protected scaleSpeed = random(2, 5)
+    protected rotation = random(0, 360)
+
+    dotManager: DotManager
+
     isGrowing = false
     doneGrowing = false
-
     isScaling = false
     doneScaling = false
 
-    #growSpeed = random(0.5, 1.25)
-    #scaleSpeed = random(2, 5)
-
-    size
     acceleration = new paper.Point(0, 0)
     velocity = new paper.Point(0, 0)
-    #vector
 
     collisionEnabled = false
     isColliding = false
 
-    circleArr = []
-    appendageArr = []
-    shapeArr = []
-    lineArr = []
+    circleArr: paper.Path[] = []
+    appendageArr: paper.Path[] = []
+    shapeArr: paper.Path[] = []
 
-    #currentShape
-    #colorMan
-    dotManager
+    radius: number
+    genitalWidth: number
+    genitalHeight = 0
+    genitalEndHeight: number
 
-    constructor(dotManager, point, radius, distance, gender, genitalWidth, genitalHeight, innerColor, outerColor) {
+    constructor(dotManager: DotManager,
+                point = paper.Point.random().multiply(paper.view.viewSize),
+                radius = random(DotManager.minRadius, DotManager.maxRadius),
+                distance = random(DotManager.minDistance, paper.view.viewSize.width),
+                genitalWidth = random(radius / DotManager.genitalDiv, radius),
+                genitalEndHeight = random(radius / DotManager.genitalDiv, radius),
+                innerColor?: paper.Color,
+                outerColor?: paper.Color) {
+
         this.dotManager = dotManager
+        this.point = point
+        this.radius = radius
+        this._distance = distance
+        this.genitalWidth = genitalWidth
+        this.genitalEndHeight = genitalEndHeight
 
-        this.radius = radius || random(DotManager.minRadius, DotManager.maxRadius)
-        this.genitalWidth = genitalWidth || random(this.radius / DotManager.genitalDiv, this.radius)
-        this.genitalHeight = 0
-        this.endGenitalHeight = genitalHeight || random(this.radius / DotManager.genitalDiv, this.radius)
+        this.scalePoint = new paper.Point(
+            random(-paper.view.viewSize.width, paper.view.viewSize.width),
+            random(-paper.view.viewSize.height, paper.view.viewSize.height))
 
-        const viewSize = paper.project.view.viewSize
-        this.point = point || new paper.Point.random().multiply(viewSize)
-        this.#scalePoint = new paper.Point(random(-viewSize.width, viewSize.width), random(-viewSize.height, viewSize.height))
-        this.#distanceObj = distance || random(DotManager.minDistance, viewSize.width)
-
-        this.#scaleSpeed = this.#distanceObj / this.#scalePoint.subtract(this.point).length
-        this.#colorMan = new ColorManager(this, innerColor, outerColor)
+        this.scaleSpeed = this._distance / this.scalePoint.subtract(this.point).length
+        this.colorMan = new ColorManager(this, innerColor, outerColor)
     }
 
-    #applyVisibility(item) {
+    protected applyVisibility(item: paper.Path | paper.PathItem) {
         item.fillColor = this.innerColor
         item.shadowColor = this.outerColor
         item.strokeColor = this.outerColor
-        item.strokeWidth = this.colorManager.strokeWidth
+        item.strokeWidth = ColorManager.strokeWidth
 
         item.shadowBlur = this.colorManager.shadowBlur
-        item.shadowOffset = 0
+        item.shadowOffset = new paper.Point(0, 0)
     }
 
-    #addToArr(arr, ...args) {
+    protected addToArr(arr: any[], ...args: any[]) {
         args.forEach((arg) => {
             arr.push(arg)
         })
 
-        this.#cleanUpAll()
+        this.cleanUpAll()
     }
 
     //deletes everything but last element in array unless specified otherwise
-    #scrubArr(arr, distance = 1) {
+    protected scrubArr(arr: any[], distance = 1) {
         for (let i = 0; i < arr.length - distance; i++) {
             arr[i].remove()
             arr.splice(i, 1)
         }
     }
 
-    #cleanUpAll() {
-        this.#scrubArr(this.appendageArr, 0)
-        this.#scrubArr(this.circleArr)
-        this.#scrubArr(this.shapeArr)
-        this.#scrubArr(this.lineArr)
+    protected cleanUpAll() {
+        this.scrubArr(this.appendageArr, 0)
+        this.scrubArr(this.circleArr)
+        this.scrubArr(this.shapeArr)
+    }
+
+    calcSize(height = this.genitalHeight){
+        const minSize = DotManager.minRadius * ((DotManager.minRadius / 5) ** 2)
+        const maxSize = DotManager.maxRadius ** 3
+
+        const size = this.genitalWidth * height * this.radius
+        return map(size, minSize, maxSize, DotManager.minRadius, DotManager.maxRadius)
+    }
+
+    get endSize(){
+        return this.calcSize(this.genitalEndHeight)
+    }
+
+    get size(){
+        return this.calcSize()
     }
 
     get distance(){
-        return this.#distanceObj
+        return this._distance
     }
 
-    set distance(dist){
-        this.#distanceObj = dist
+    set distance(distance: number){
+        this._distance = distance
     }
 
     get vector() {
-        return this.#vector
+        return this._vector
     }
 
     set vector(vector) {
+        // @ts-ignore
         const len = constrain(vector.length, DotManager.minVector, DotManager.maxVector)
-        this.#vector = new paper.Point({length: len, angle: vector.angle})
+        // @ts-ignore
+        this._vector = new Point({length: len, angle: vector.angle})
 
         this.drawVector()
     }
 
     get colorManager() {
-        return this.#colorMan
+        return this.colorMan
     }
 
     get innerColor() {
         return this.colorManager.innerColor
     }
 
-    set innerColor(color) {
+    set innerColor(color: paper.Color) {
         this.colorManager.innerColor = color
-        this.#applyVisibility(this.shape)
+        this.applyVisibility(this.shape)
     }
 
     get outerColor() {
         return this.colorManager.outerColor
     }
 
-    set outerColor(color) {
+    set outerColor(color: paper.Color) {
         this.colorManager.outerColor = color
-        this.#applyVisibility(this.shape)
+        this.applyVisibility(this.shape)
     }
 
     get position() {
         return this.shape.position
     }
 
-    set position(position) {
+    set position(position: paper.Point) {
         this.shape.position = position
     }
 
     get shape() {
-        return this.#currentShape
+        return this._shape
     }
 
     set shape(shape) {
-        this.#currentShape = shape
-        this.#currentShape.name = "currentShape"
-        this.shapeArr.push(this.#currentShape)
+        this._shape = shape
+        this._shape.name = "currentShape"
+        this.shapeArr.push(this._shape)
 
-        this.#addToArr(this.shapeArr, this.#currentShape)
+        this.addToArr(this.shapeArr, this._shape)
     }
 
     get infoString() {
@@ -205,7 +232,7 @@ export default class GenderShape {
         } else {
             this.growGenitalia()
             this.collisionEnabled = true
-            this.#generateFirstVector()
+            this.generateFirstVector()
             this.updatePosition()
         }
     }
@@ -219,56 +246,62 @@ export default class GenderShape {
         circle.name = "Circle"
 
         if (visible) {
-            this.#applyVisibility(circle)
+            this.applyVisibility(circle)
         }
 
-        this.#addToArr(this.circleArr, circle)
+        this.addToArr(this.circleArr, circle)
         return circle
     }
 
     collisionDetected(value = true) {
         this.isColliding = value
-        this.#currentShape.fillColor = "pink"
+        this.shape.fillColor = "pink"
     }
 
-    genGenitalia(height) {
+    genGenitalia(height: number, apply = true) {
         const tolerance = this.genitalWidth / 2
         const xPos = this.point.x - this.genitalWidth / 2
         const yPosButt = this.point.y + this.radius + tolerance
         const yPosPenis = this.point.y - this.radius + tolerance
 
-        this.penis = new Appendage(xPos, yPosPenis, this.radius, this.genitalWidth, height)
-        this.butt = new Appendage(xPos, yPosButt, this.radius, this.genitalWidth, height)
+        const penis = Appendage(xPos, yPosPenis, this.genitalWidth, height)
+        const butt = Appendage(xPos, yPosButt, this.genitalWidth, height)
+        this.addToArr(this.appendageArr, penis, butt)
 
-        this.#addToArr(this.appendageArr, this.penis, this.butt)
+        const genitalia = {penis: penis, butt: butt}
+        if(apply) this.applyGenitalia(genitalia)
+
+        return genitalia
     }
 
     growGenitalia() {
-        if (this.genitalHeight < this.endGenitalHeight) {
+        if (this.genitalHeight < this.genitalEndHeight) {
             this.genGenitalia(this.genitalHeight)
-            this.genitalHeight += this.#growSpeed
+            this.genitalHeight += this.growSpeed
             this.isGrowing = true
         } else {
             this.isGrowing = false
             this.doneGrowing = true
         }
+    }
 
+    applyGenitalia(genitalia: {penis: paper.Path, butt: paper.Path}){
         const circle = this.genCircle(false)
-        const buttCircle = circle.subtract(this.butt)
-        const penisCircle = buttCircle.unite(this.penis)
+        const buttCircle = circle.subtract(genitalia.butt)
+        const penisCircle = buttCircle.unite(genitalia.penis)
 
         buttCircle.name = 'buttCircle'
         penisCircle.name = 'penisCircle'
-        this.#applyVisibility(penisCircle)
+        this.applyVisibility(penisCircle)
 
-        this.#addToArr(this.circleArr, circle, buttCircle, penisCircle)
-        penisCircle.rotation = this.#rotation
+        this.addToArr(this.circleArr, circle, buttCircle, penisCircle)
+        penisCircle.rotation = this.rotation
         this.shape = penisCircle
     }
 
     //returns true if out of bounds
     outOfBounds() {
-        const viewBounds = paper.project.view.bounds
+        const viewBounds = paper.view.bounds
         return !viewBounds.contains(this.position)
     }
 
@@ -287,16 +320,16 @@ export default class GenderShape {
     moveTowardScreen() {
         const view = paper.project.view.bounds
         const half = new paper.Point(view.width / 2, view.height / 2)
-        const scaleDiff = this.point.subtract(this.#scalePoint)
+        const scaleDiff = this.point.subtract(this.scalePoint)
 
         // consoleLog("scaleDiff", scaleDiff)
         // consoleLog("scaleSpeed", this.#scaleSpeed)
 
-        consoleLog("scaleDiv", scaleDiff.divide(this.#scaleSpeed))
-        consoleLog("scaleSpeed", this.#scaleSpeed)
+        consoleLog("scaleDiv", scaleDiff.divide(this.scaleSpeed))
+        consoleLog("scaleSpeed", this.scaleSpeed)
 
-        const scaleX = map(this.#scalePoint.x / this.distance, 0, 1, 0, view.width)
-        const scaleY = map(this.#scalePoint.y / this.distance, 0, 1, 0, view.height)
+        const scaleX = map(this.scalePoint.x / this.distance, 0, 1, 0, view.width)
+        const scaleY = map(this.scalePoint.y / this.distance, 0, 1, 0, view.height)
         let point = new paper.Point(scaleX, scaleY)
         const radius = map(this.distance, 0, view.width, this.radius, DotManager.minRadius)
 
@@ -306,10 +339,10 @@ export default class GenderShape {
             // console.log(`scaleX: ${scaleX}`)
             // console.log(`scaleY: ${scaleY}`)
         } else {
-            this.distance -= this.#scaleSpeed
+            this.distance -= this.scaleSpeed
 
 
-            this.#scalePoint = this.#scalePoint.add(scaleDiff.divide(this.#scaleSpeed))
+            this.scalePoint = this.scalePoint.add(scaleDiff.divide(this.scaleSpeed))
 
             this.shape = this.genCircle(true, point, radius)
             // this.shape.translate(half)
@@ -319,20 +352,15 @@ export default class GenderShape {
     drawVector() {
         const end = this.position.add(this.vector)
         const line = new paper.Path.Line(this.position, end)
+        // @ts-ignore
         line.strokeColor = "red"
     }
 
     //runs only once to generate the first vector
-    #generateFirstVector() {
+    protected generateFirstVector() {
         if (this.vector == null) {
-            const minSize = DotManager.minRadius * ((DotManager.minRadius / 5) ** 2)
-            const maxSize = DotManager.maxRadius ** 3
-
-            const size = this.genitalWidth * this.endGenitalHeight * this.radius
-            this.size = map(size, minSize, maxSize, DotManager.minRadius, DotManager.maxRadius)
-
             const length = random(DotManager.minVector, DotManager.maxVector)
-            this.vector = new paper.Point({length: length, angle: this.#rotation - 90})
+            this.vector = new paper.Point({length: length, angle: this.rotation - 90})
 
             consoleLog("size", this.size)
             consoleLog("vector", this.vector.length)
@@ -340,7 +368,8 @@ export default class GenderShape {
         }
     }
 
-    attractShape(shape) {
+    attractShape(shape: GenderShape) {
+        const G  = 6.67428 * (10 ** -11)
         let force = this.position.subtract(shape.position)
         const distance = constrain(force.length, DotManager.minVector, DotManager.maxVector)
         const strength = (G * this.size * shape.size) / distance ** 2
@@ -348,7 +377,7 @@ export default class GenderShape {
         shape.applyForce(force.normalize(strength))
     }
 
-    applyForce(force) {
+    applyForce(force: paper.Point) {
         this.acceleration = this.acceleration.add(force.divide(this.size))
     }
 
@@ -365,10 +394,10 @@ export default class GenderShape {
         // this.checkBorders()
     }
 
-    react(other) {
-        var overlap = this.radius + b.radius - dist;
-        var direc = (this.point - b.point).normalize(overlap * 0.015);
-        this.vector += direc;
-        b.vector -= direc;
-    }
+    // react(other) {
+    //     var overlap = this.radius + b.radius - dist;
+    //     var direc = (this.point - b.point).normalize(overlap * 0.015);
+    //     this.vector += direc;
+    //     b.vector -= direc;
+    // }
 }

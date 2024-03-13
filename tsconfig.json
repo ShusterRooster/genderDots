@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Node 21",
+  "_version": "21.0.0",
+  "compilerOptions": {
+    "lib": [
+      "es2023",
+      "dom"
+    ],
+    "module": "node16",
+    "target": "es2022",
+
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node16",
+    "allowSyntheticDefaultImports": true,
+//    "noImplicitAny": true,
+
+    "sourceMap": true,
+    "allowJs": true,
+//    "rootDir": "./src",
+    "outDir": "./dist"
+  }
+}
