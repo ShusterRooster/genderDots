@@ -16,11 +16,12 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node16",
     "allowSyntheticDefaultImports": true,
-//    "noImplicitAny": true,
 
     "sourceMap": true,
     "allowJs": true,
-//    "rootDir": "./src",
-    "outDir": "./dist"
-  }
+    "outDir": "./dist",
+
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+  },
 }

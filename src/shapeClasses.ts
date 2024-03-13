@@ -1,6 +1,6 @@
-import DotManager from "./DotManager.js";
-import ColorManager from "./ColorManager.js";
-import {consoleLog, constrain, map, random} from "./HelperFunctions.js";
+import DotManager from "./DotManager";
+import ColorManager from "./ColorManager";
+import {consoleLog, constrain, map, random} from "./HelperFunctions";
 import * as paper from "paper";
 
 function Appendage(x: number,
