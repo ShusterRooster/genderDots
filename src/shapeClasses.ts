@@ -79,7 +79,7 @@ class PathArray {
 
 export default class GenderShape {
     //variables dependent on view being loaded
-    point: paper.Point
+    spawnPoint: paper.Point
 
     protected scalePoint: paper.Point
     protected _distance: number
@@ -88,7 +88,6 @@ export default class GenderShape {
     protected colorMan: ColorManager
 
     protected growSpeed = random(0.5, 1.25)
-    protected scaleSpeed = random(2, 5)
     protected rotation = random(0, 360)
 
     dotManager: DotManager
@@ -115,7 +114,7 @@ export default class GenderShape {
     genitalEndHeight: number
 
     constructor(dotManager: DotManager,
-                point = paper.Point.random().multiply(paper.view.viewSize),
+                spawnPoint = paper.Point.random().multiply(paper.view.viewSize),
                 radius = random(DotManager.minRadius, DotManager.maxRadius),
                 distance = random(DotManager.minDistance, paper.view.viewSize.width),
                 genitalWidth = random(radius / DotManager.genitalDiv, radius),
@@ -124,19 +123,18 @@ export default class GenderShape {
                 outerColor?: paper.Color) {
 
         this.dotManager = dotManager
-        this.point = point
+        this.spawnPoint = spawnPoint
         this.radius = radius
         this._distance = distance
         this.genitalWidth = genitalWidth
         this.genitalEndHeight = genitalEndHeight
 
         this.scalePoint = new paper.Point(
-            random(-paper.view.viewSize.width, paper.view.viewSize.width),
-            random(-paper.view.viewSize.height, paper.view.viewSize.height))
+            random(-paper.view.viewSize.width, paper.view.viewSize.width * 2),
+            random(-paper.view.viewSize.height, paper.view.viewSize.height * 2))
 
         console.log(this.scalePoint)
 
-        this.scaleSpeed = this._distance / this.scalePoint.subtract(this.point).length
         this.colorMan = new ColorManager(this, innerColor, outerColor)
     }
 
@@ -244,8 +242,12 @@ export default class GenderShape {
         this.shapeArr.push(this._shape)
     }
 
+    get scaleSpeed(){
+        return this.distance / this.scalePoint.subtract(this.spawnPoint).length
+    }
+
     get infoString() {
-        let str = `point: ${this.point}<br>`
+        let str = `point: ${this.spawnPoint}<br>`
 
         if (this.shape !== null) {
             str += `shape: ${this.position}<br>`
@@ -274,7 +276,7 @@ export default class GenderShape {
         // add sync functions here when needed
     }
 
-    genCircle(visible = true, point = this.point, radius = this.radius) {
+    genCircle(visible = true, point = this.spawnPoint, radius = this.radius) {
         const circle = new paper.Path.Circle(point, radius)
         circle.name = "Circle"
 
@@ -293,9 +295,9 @@ export default class GenderShape {
 
     genGenitalia(height: number, apply = true) {
         const tolerance = this.genitalWidth / 2
-        const xPos = this.point.x - this.genitalWidth / 2
-        const yPosButt = this.point.y + this.radius + tolerance
-        const yPosPenis = this.point.y - this.radius + tolerance
+        const xPos = this.spawnPoint.x - this.genitalWidth / 2
+        const yPosButt = this.spawnPoint.y + this.radius + tolerance
+        const yPosPenis = this.spawnPoint.y - this.radius + tolerance
 
         const penis = Appendage(xPos, yPosPenis, this.genitalWidth, height)
         const butt = Appendage(xPos, yPosButt, this.genitalWidth, height)
@@ -348,12 +350,17 @@ export default class GenderShape {
         }
     }
 
+    mapToDistance(num: number, max: number){
+        return
+
+    }
+
 
     //TODO suck my fart balls
     moveTowardScreen() {
         const view = paper.project.view.bounds
         const half = new paper.Point(view.width / 2, view.height / 2)
-        const scaleDiff = this.point.subtract(this.scalePoint)
+        const scaleDiff = this.spawnPoint.subtract(this.scalePoint)
 
         const scaleX = map(this.scalePoint.x / this.distance, 0, 1, 0, view.width)
         const scaleY = map(this.scalePoint.y / this.distance, 0, 1, 0, view.height)
@@ -362,9 +369,6 @@ export default class GenderShape {
 
         if (this.distance < DotManager.minDistance) {
             this.doneScaling = true
-            // console.log("done scaling")
-            // console.log(`scaleX: ${scaleX}`)
-            // console.log(`scaleY: ${scaleY}`)
         } else {
             this.distance -= this.scaleSpeed
 
