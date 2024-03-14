@@ -1,6 +1,6 @@
 import {random} from "./HelperFunctions";
 import GenderShape from "./shapeClasses";
-import * as paper from "paper";
+import paper from "paper";
 
 export default class ColorManager {
     static readonly attractionTypes: string[] = ["similar", "diff", "random"]

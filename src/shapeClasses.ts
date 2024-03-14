@@ -1,21 +1,19 @@
 import DotManager from "./DotManager";
 import ColorManager from "./ColorManager";
 import {consoleLog, constrain, map, random} from "./HelperFunctions";
-import * as paper from "paper";
+import paper from "paper";
 
 function Appendage(x: number,
                    y: number,
                    width: number,
                    height: number): paper.Path.Line {
 
-    //left line
     const leftLine = new paper.Path.Line({
         name: "leftLine",
         from: [x, y],
         to: [x, y - height]
     })
 
-    //middle arc
     const midArc = new paper.Path.Arc({
         name: "midArc",
         from: [x, y - height],
@@ -23,7 +21,6 @@ function Appendage(x: number,
         to: [x + width, y - height]
     })
 
-    //right line
     const rightLine = new paper.Path.Line({
         name: "rightLine",
         from: [x + width, y - height],
@@ -38,6 +35,46 @@ function Appendage(x: number,
     leftLine.name = "Appendage"
 
     return leftLine
+}
+
+class PathArray {
+    name: string
+    arr: paper.Path[]
+    cleanDist: number
+
+    constructor(name: string, cleanDist = 1) {
+        this.name = name
+        this.arr = []
+        this.cleanDist = cleanDist
+    }
+
+    push(...args: any[]) {
+        args.forEach((arg) => {
+            this.arr.push(arg)
+        })
+
+        this.scrubArr()
+    }
+
+    //deletes everything but last element in array unless specified otherwise
+    scrubArr() {
+        const len = this.arr.length
+
+        if(len > this.cleanDist){
+            for (let i = 0; i < len - this.cleanDist; i++) {
+                this.arr[i].remove()
+            }
+        }
+
+        this.arr = this.arr.slice(len - this.cleanDist)
+    }
+
+    print(text?: string){
+        if(text)
+            console.log(`${text}, ${this.name}: ${this.arr}`)
+        else
+            console.log(`${this.name}: [${this.arr}]`)
+    }
 }
 
 export default class GenderShape {
@@ -67,9 +104,10 @@ export default class GenderShape {
     collisionEnabled = false
     isColliding = false
 
-    circleArr: paper.Path[] = []
-    appendageArr: paper.Path[] = []
-    shapeArr: paper.Path[] = []
+    circleArr = new PathArray("circleArr")
+    shapeArr = new PathArray("shapeArr")
+    lineArr = new PathArray("lineArr")
+    appendageArr = new PathArray("appendageArr", 0)
 
     radius: number
     genitalWidth: number
@@ -96,6 +134,8 @@ export default class GenderShape {
             random(-paper.view.viewSize.width, paper.view.viewSize.width),
             random(-paper.view.viewSize.height, paper.view.viewSize.height))
 
+        console.log(this.scalePoint)
+
         this.scaleSpeed = this._distance / this.scalePoint.subtract(this.point).length
         this.colorMan = new ColorManager(this, innerColor, outerColor)
     }
@@ -110,26 +150,23 @@ export default class GenderShape {
         item.shadowOffset = new paper.Point(0, 0)
     }
 
-    protected addToArr(arr: any[], ...args: any[]) {
-        args.forEach((arg) => {
-            arr.push(arg)
-        })
+    //runs only once to generate the first vector
+    protected generateFirstVector() {
+        if (this.vector == null) {
+            const length = random(DotManager.minVector, DotManager.maxVector)
+            this.vector = new paper.Point({length: length, angle: this.rotation - 90})
 
-        this.cleanUpAll()
-    }
-
-    //deletes everything but last element in array unless specified otherwise
-    protected scrubArr(arr: any[], distance = 1) {
-        for (let i = 0; i < arr.length - distance; i++) {
-            arr[i].remove()
-            arr.splice(i, 1)
+            consoleLog("size", this.size)
+            consoleLog("vector", this.vector.length)
+            consoleLog("div", this.size / this.vector.length)
         }
     }
 
-    protected cleanUpAll() {
-        this.scrubArr(this.appendageArr, 0)
-        this.scrubArr(this.circleArr)
-        this.scrubArr(this.shapeArr)
+    drawLineTo(point: paper.Point, color: paper.Color | string = "red"){
+        const line = new paper.Path.Line(this.shape.position, point)
+        // @ts-ignore
+        line.strokeColor = color
+        this.lineArr.push(line)
     }
 
     calcSize(height = this.genitalHeight){
@@ -161,12 +198,10 @@ export default class GenderShape {
     }
 
     set vector(vector) {
-        // @ts-ignore
         const len = constrain(vector.length, DotManager.minVector, DotManager.maxVector)
-        // @ts-ignore
-        this._vector = new Point({length: len, angle: vector.angle})
+        this._vector = new paper.Point({length: len, angle: vector.angle})
 
-        this.drawVector()
+        this.drawLineTo(this.position.add(this._vector))
     }
 
     get colorManager() {
@@ -207,8 +242,6 @@ export default class GenderShape {
         this._shape = shape
         this._shape.name = "currentShape"
         this.shapeArr.push(this._shape)
-
-        this.addToArr(this.shapeArr, this._shape)
     }
 
     get infoString() {
@@ -249,7 +282,7 @@ export default class GenderShape {
             this.applyVisibility(circle)
         }
 
-        this.addToArr(this.circleArr, circle)
+        this.circleArr.push(circle)
         return circle
     }
 
@@ -266,7 +299,7 @@ export default class GenderShape {
 
         const penis = Appendage(xPos, yPosPenis, this.genitalWidth, height)
         const butt = Appendage(xPos, yPosButt, this.genitalWidth, height)
-        this.addToArr(this.appendageArr, penis, butt)
+        this.appendageArr.push(penis, butt)
 
         const genitalia = {penis: penis, butt: butt}
         if(apply) this.applyGenitalia(genitalia)
@@ -294,7 +327,7 @@ export default class GenderShape {
         penisCircle.name = 'penisCircle'
         this.applyVisibility(penisCircle)
 
-        this.addToArr(this.circleArr, circle, buttCircle, penisCircle)
+        this.circleArr.push(circle, buttCircle, penisCircle)
         penisCircle.rotation = this.rotation
         this.shape = penisCircle
     }
@@ -322,12 +355,6 @@ export default class GenderShape {
         const half = new paper.Point(view.width / 2, view.height / 2)
         const scaleDiff = this.point.subtract(this.scalePoint)
 
-        // consoleLog("scaleDiff", scaleDiff)
-        // consoleLog("scaleSpeed", this.#scaleSpeed)
-
-        consoleLog("scaleDiv", scaleDiff.divide(this.scaleSpeed))
-        consoleLog("scaleSpeed", this.scaleSpeed)
-
         const scaleX = map(this.scalePoint.x / this.distance, 0, 1, 0, view.width)
         const scaleY = map(this.scalePoint.y / this.distance, 0, 1, 0, view.height)
         let point = new paper.Point(scaleX, scaleY)
@@ -341,30 +368,13 @@ export default class GenderShape {
         } else {
             this.distance -= this.scaleSpeed
 
+            // this.scalePoint = this.scalePoint.add(scaleDiff.divide(this.scaleSpeed))
+            point = point.add(scaleDiff.divide(this.scaleSpeed))
 
-            this.scalePoint = this.scalePoint.add(scaleDiff.divide(this.scaleSpeed))
 
             this.shape = this.genCircle(true, point, radius)
+            this.drawLineTo(this.scalePoint)
             // this.shape.translate(half)
-        }
-    }
-
-    drawVector() {
-        const end = this.position.add(this.vector)
-        const line = new paper.Path.Line(this.position, end)
-        // @ts-ignore
-        line.strokeColor = "red"
-    }
-
-    //runs only once to generate the first vector
-    protected generateFirstVector() {
-        if (this.vector == null) {
-            const length = random(DotManager.minVector, DotManager.maxVector)
-            this.vector = new paper.Point({length: length, angle: this.rotation - 90})
-
-            consoleLog("size", this.size)
-            consoleLog("vector", this.vector.length)
-            consoleLog("div", this.size / this.vector.length)
         }
     }
 
