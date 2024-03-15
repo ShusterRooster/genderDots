@@ -4,11 +4,14 @@ This project uses webpack and TypeScript. Object creation and handling is done t
 
 
 ## TODOs:
-* Finish conversion to TypeScript
-* Finish webpack config
-* Get dots scaling algorithm to work
+* finish determine gender func, 49, 51, etc.
 * Fix boundaries respawning
-* Add color attraction and physics behind that
+* Fix grow speeds
+* fix distance sorting
+* implement collision
+* implement quadtree
+* further optimizations???
+* Add color attraction and physics behind that???
 
 
 

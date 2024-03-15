@@ -1,7 +1,7 @@
 import DotManager from "./DotManager";
 import ColorManager from "./ColorManager";
 import {consoleLog, constrain, map, random} from "./HelperFunctions";
-import paper from "paper";
+import paper, {view} from "paper";
 
 function Appendage(x: number,
                    y: number,
@@ -60,7 +60,7 @@ class PathArray {
     scrubArr() {
         const len = this.arr.length
 
-        if(len > this.cleanDist){
+        if (len > this.cleanDist) {
             for (let i = 0; i < len - this.cleanDist; i++) {
                 this.arr[i].remove()
             }
@@ -69,8 +69,8 @@ class PathArray {
         this.arr = this.arr.slice(len - this.cleanDist)
     }
 
-    print(text?: string){
-        if(text)
+    print(text?: string) {
+        if (text)
             console.log(`${text}, ${this.name}: ${this.arr}`)
         else
             console.log(`${this.name}: [${this.arr}]`)
@@ -78,19 +78,17 @@ class PathArray {
 }
 
 export default class GenderShape {
-    //variables dependent on view being loaded
     spawnPoint: paper.Point
+    dotManager: DotManager
+    colorManager: ColorManager
 
-    protected scalePoint: paper.Point
     protected _distance: number
     protected _vector = new paper.Point(0, 0)
     protected _shape: any
-    protected colorMan: ColorManager
 
-    protected growSpeed = random(0.5, 1.25)
+    protected scaleSpeed: number
+    protected growSpeed: number
     protected rotation = random(0, 360)
-
-    dotManager: DotManager
 
     isGrowing = false
     doneGrowing = false
@@ -116,11 +114,10 @@ export default class GenderShape {
     constructor(dotManager: DotManager,
                 spawnPoint = paper.Point.random().multiply(paper.view.viewSize),
                 radius = random(DotManager.minRadius, DotManager.maxRadius),
-                distance = random(DotManager.minDistance, paper.view.viewSize.width),
+                distance = random(DotManager.minDistance, DotManager.maxDistance),
                 genitalWidth = random(radius / DotManager.genitalDiv, radius),
                 genitalEndHeight = random(radius / DotManager.genitalDiv, radius),
-                innerColor?: paper.Color,
-                outerColor?: paper.Color) {
+                color?: paper.Color) {
 
         this.dotManager = dotManager
         this.spawnPoint = spawnPoint
@@ -129,65 +126,54 @@ export default class GenderShape {
         this.genitalWidth = genitalWidth
         this.genitalEndHeight = genitalEndHeight
 
-        this.scalePoint = new paper.Point(
-            random(-paper.view.viewSize.width, paper.view.viewSize.width * 2),
-            random(-paper.view.viewSize.height, paper.view.viewSize.height * 2))
+        this.scaleSpeed = DotManager.baseScaleSpeed * (1 - (this.distance / DotManager.maxDistance))
+        this.growSpeed = (this.genitalWidth * this.genitalEndHeight) / ((DotManager.maxRadius / DotManager.genitalDiv) ** 2)
 
-        console.log(this.scalePoint)
+        consoleLog("scale", this.scaleSpeed)
+        consoleLog("grow", this.growSpeed)
 
-        this.colorMan = new ColorManager(this, innerColor, outerColor)
-    }
-
-    protected applyVisibility(item: paper.Path | paper.PathItem) {
-        item.fillColor = this.innerColor
-        item.shadowColor = this.outerColor
-        item.strokeColor = this.outerColor
-        item.strokeWidth = ColorManager.strokeWidth
-
-        item.shadowBlur = this.colorManager.shadowBlur
-        item.shadowOffset = new paper.Point(0, 0)
+        this.colorManager = new ColorManager(this, color)
     }
 
     //runs only once to generate the first vector
     protected generateFirstVector() {
-        if (this.vector == null) {
-            const length = random(DotManager.minVector, DotManager.maxVector)
-            this.vector = new paper.Point({length: length, angle: this.rotation - 90})
-
-            consoleLog("size", this.size)
-            consoleLog("vector", this.vector.length)
-            consoleLog("div", this.size / this.vector.length)
-        }
+        const length = random(DotManager.minVector, DotManager.maxVector)
+        this.vector = new paper.Point({length: length, angle: this.rotation - 90})
     }
 
-    drawLineTo(point: paper.Point, color: paper.Color | string = "red"){
+    protected determineGender(){
+
+    }
+
+    drawLineTo(point: paper.Point, color: paper.Color | string = "red") {
         const line = new paper.Path.Line(this.shape.position, point)
         // @ts-ignore
         line.strokeColor = color
         this.lineArr.push(line)
     }
 
-    calcSize(height = this.genitalHeight){
-        const minSize = DotManager.minRadius * ((DotManager.minRadius / 5) ** 2)
-        const maxSize = DotManager.maxRadius ** 3
-
+    calcSize(height = this.genitalHeight) {
         const size = this.genitalWidth * height * this.radius
-        return map(size, minSize, maxSize, DotManager.minRadius, DotManager.maxRadius)
+        return map(size, DotManager.minSize, DotManager.maxSize, DotManager.minRadius, DotManager.maxRadius)
     }
 
-    get endSize(){
+    calcScaledRadius(distance = this.distance) {
+        return map(distance, DotManager.minDistance, DotManager.maxDistance, this.radius, DotManager.minRadius)
+    }
+
+    get endSize() {
         return this.calcSize(this.genitalEndHeight)
     }
 
-    get size(){
+    get size() {
         return this.calcSize()
     }
 
-    get distance(){
+    get distance() {
         return this._distance
     }
 
-    set distance(distance: number){
+    set distance(distance: number) {
         this._distance = distance
     }
 
@@ -202,26 +188,8 @@ export default class GenderShape {
         this.drawLineTo(this.position.add(this._vector))
     }
 
-    get colorManager() {
-        return this.colorMan
-    }
-
-    get innerColor() {
-        return this.colorManager.innerColor
-    }
-
-    set innerColor(color: paper.Color) {
-        this.colorManager.innerColor = color
-        this.applyVisibility(this.shape)
-    }
-
-    get outerColor() {
-        return this.colorManager.outerColor
-    }
-
-    set outerColor(color: paper.Color) {
-        this.colorManager.outerColor = color
-        this.applyVisibility(this.shape)
+    get color() {
+        return this.colorManager.color
     }
 
     get position() {
@@ -242,10 +210,6 @@ export default class GenderShape {
         this.shapeArr.push(this._shape)
     }
 
-    get scaleSpeed(){
-        return this.distance / this.scalePoint.subtract(this.spawnPoint).length
-    }
-
     get infoString() {
         let str = `point: ${this.spawnPoint}<br>`
 
@@ -260,8 +224,6 @@ export default class GenderShape {
     }
 
     run() {
-        this.iterate()
-
         if (!this.doneScaling) {
             this.moveTowardScreen()
         } else {
@@ -272,17 +234,10 @@ export default class GenderShape {
         }
     }
 
-    iterate() {
-        // add sync functions here when needed
-    }
-
     genCircle(visible = true, point = this.spawnPoint, radius = this.radius) {
         const circle = new paper.Path.Circle(point, radius)
         circle.name = "Circle"
-
-        if (visible) {
-            this.applyVisibility(circle)
-        }
+        if (visible) this.colorManager.applyVisibility(circle)
 
         this.circleArr.push(circle)
         return circle
@@ -304,7 +259,7 @@ export default class GenderShape {
         this.appendageArr.push(penis, butt)
 
         const genitalia = {penis: penis, butt: butt}
-        if(apply) this.applyGenitalia(genitalia)
+        if (apply) this.applyGenitalia(genitalia)
 
         return genitalia
     }
@@ -320,14 +275,14 @@ export default class GenderShape {
         }
     }
 
-    applyGenitalia(genitalia: {penis: paper.Path, butt: paper.Path}){
+    applyGenitalia(genitalia: { penis: paper.Path, butt: paper.Path }) {
         const circle = this.genCircle(false)
         const buttCircle = circle.subtract(genitalia.butt)
         const penisCircle = buttCircle.unite(genitalia.penis)
 
         buttCircle.name = 'buttCircle'
         penisCircle.name = 'penisCircle'
-        this.applyVisibility(penisCircle)
+        this.colorManager.applyVisibility(penisCircle)
 
         this.circleArr.push(circle, buttCircle, penisCircle)
         penisCircle.rotation = this.rotation
@@ -344,46 +299,38 @@ export default class GenderShape {
     //TODO GET WORKING
     checkBorders() {
         if (this.outOfBounds()) {
-            const center = paper.project.view.center
+            const center = paper.view.center
             const dist = this.position.subtract(center).multiply(-1)
             this.position = center.add(dist)
         }
     }
 
-    mapToDistance(num: number, max: number){
-        return
+    gemini() {
+        const center = paper.view.center
 
+        const centerDist = this.spawnPoint.subtract(center)
+        const dist = Math.sqrt((centerDist.x ** 2) + (centerDist.y ** 2))
+
+        this.spawnPoint.x -= centerDist.x * this.scaleSpeed / dist
+        this.spawnPoint.y -= centerDist.y * this.scaleSpeed / dist
+
+        const radius = Math.max(1, 20 / dist)
+
+        this.shape = this.genCircle(true, this.spawnPoint, radius)
+        this.drawLineTo(center)
     }
 
-
-    //TODO suck my fart balls
     moveTowardScreen() {
-        const view = paper.project.view.bounds
-        const half = new paper.Point(view.width / 2, view.height / 2)
-        const scaleDiff = this.spawnPoint.subtract(this.scalePoint)
-
-        const scaleX = map(this.scalePoint.x / this.distance, 0, 1, 0, view.width)
-        const scaleY = map(this.scalePoint.y / this.distance, 0, 1, 0, view.height)
-        let point = new paper.Point(scaleX, scaleY)
-        const radius = map(this.distance, 0, view.width, this.radius, DotManager.minRadius)
-
-        if (this.distance < DotManager.minDistance) {
+        if (this.distance <= 0) {
             this.doneScaling = true
         } else {
             this.distance -= this.scaleSpeed
-
-            // this.scalePoint = this.scalePoint.add(scaleDiff.divide(this.scaleSpeed))
-            point = point.add(scaleDiff.divide(this.scaleSpeed))
-
-
-            this.shape = this.genCircle(true, point, radius)
-            this.drawLineTo(this.scalePoint)
-            // this.shape.translate(half)
+            this.shape = this.genCircle(true, this.spawnPoint, this.calcScaledRadius())
         }
     }
 
     attractShape(shape: GenderShape) {
-        const G  = 6.67428 * (10 ** -11)
+        const G = 6.67428 * (10 ** -11)
         let force = this.position.subtract(shape.position)
         const distance = constrain(force.length, DotManager.minVector, DotManager.maxVector)
         const strength = (G * this.size * shape.size) / distance ** 2
@@ -396,9 +343,11 @@ export default class GenderShape {
     }
 
     updatePosition() {
+        if (!this.vector) this.generateFirstVector()
+
         const dragMag = DotManager.friction * (this.velocity.length ** 2)
         const drag = this.velocity.multiply(-DotManager.friction).normalize(dragMag)
-        // this.applyForce(drag)
+        this.applyForce(drag)
 
         this.applyForce(this.vector)
         this.velocity = this.velocity.add(this.acceleration)

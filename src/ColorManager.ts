@@ -1,70 +1,62 @@
-import {random} from "./HelperFunctions";
+import {map, random} from "./HelperFunctions";
 import GenderShape from "./shapeClasses";
 import paper from "paper";
+import DotManager from "./DotManager";
 
 export default class ColorManager {
     static readonly attractionTypes: string[] = ["similar", "diff", "random"]
-    static readonly saturation: number = 0.1
-    static readonly brightness: number = 1
-
-    static readonly strokeWidth: number = 5
     static readonly minShadowBlur: number = 10
     static readonly maxShadowBlur: number = 25
+
+    static readonly maxGray: number = 0.75
 
     tolerance = random(10, 92)
     changeRate = random(0.5, 1.25)
     partners = []
     attractionType = ColorManager.attractionTypes[Math.floor(Math.random() * ColorManager.attractionTypes.length)]
 
-    protected _innerColor: paper.Color
-    protected _outerColor: paper.Color
-    protected colorArr: paper.Color[] = []
-
+    protected _color: paper.Color
     genderDot: GenderShape
-    shadowBlur = random(ColorManager.minShadowBlur, ColorManager.maxShadowBlur)
 
-    constructor(genderDot: GenderShape,
-                innerColor?: paper.Color,
-                outerColor?: paper.Color) {
-
+    constructor(genderDot: GenderShape, color?: paper.Color) {
         this.genderDot = genderDot
-        this._innerColor = !innerColor ? this.generateColor(
-            random(0, 360),
-            ColorManager.saturation,
-            ColorManager.brightness): innerColor
-
-        this._outerColor = !outerColor ? this.generateColor(random(0, 360),
-            ColorManager.saturation,
-            ColorManager.brightness): outerColor
-        this.colorArr.push(this._innerColor, this._outerColor)
+        this._color = !color ? this.generateColor(Math.random()): color
     }
 
-    generateColor(hue: number, saturation: number, brightness: number) {
-        return new paper.Color({
-            hue: hue,
-            saturation: saturation,
-            brightness: brightness
-        })
+    applyVisibility(item: paper.Path | paper.PathItem = this.genderDot.shape) {
+        item.fillColor = this.color
+        item.shadowColor = this.color
+
+        item.fillColor.alpha = this.calcAlpha()
+        item.shadowBlur = this.calcShadow()
+        item.shadowOffset = new paper.Point(0, 0)
     }
 
-    get innerColor() {
-        return this._innerColor
+    generateColor(gray = random(0, ColorManager.maxGray)) {
+        return new paper.Color(gray)
     }
 
-    set innerColor(color) {
-        this._innerColor = color
+    calcShadow(){
+        return map(this.genderDot.calcSize(),
+            DotManager.minRadius, DotManager.maxRadius,
+            ColorManager.minShadowBlur, ColorManager.maxShadowBlur)
     }
 
-    get outerColor() {
-        return this._outerColor
+    calcAlpha(distance = this.genderDot.distance) {
+        return map(distance, 0, DotManager.maxDistance, 1, 0)
     }
 
-    set outerColor(color) {
-        this._outerColor = color
+    get color() {
+        return this._color
+    }
+
+    set color(color: paper.Color) {
+        this._color = color
+        this.applyVisibility()
     }
 
     colorDistance(other: GenderShape) {
-        return ColorManager.colorDistance(this.outerColor, other.outerColor)
+        return ColorManager.colorDistance(this.color, other.color)
     }
 
     protected static distance(color: paper.Color) {
@@ -75,9 +67,5 @@ export default class ColorManager {
     static colorDistance(color1: paper.Color, color2: paper.Color) {
         const color = color2.subtract(color1)
         return ColorManager.distance(color)
-    }
-
-    static numToColor(num: number) {
-        return new paper.Color(num, num, num)
     }
 }
