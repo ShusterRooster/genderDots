@@ -1,7 +1,29 @@
 import GenderShape from "./shapeClasses";
-import {project} from "paper";
+import {Color} from "paper";
+
+export interface Sex {
+    name: string,
+    probability: number
+}
+
+export interface TestShape {
+    spawnPoint?: paper.Point,
+    radius?: number,
+    distance?: number,
+    sex?: string,
+    genitalWidth?: number,
+    genitalHeight?: number,
+    color?: paper.Color
+}
 
 export default class DotManager {
+    /* Standard sex distribution data found here: https://www.ined.fr/en/everything_about_population/demographic-facts-sheets/faq/more-men-or-women-in-the-world.
+    Data adjusted to mix in intersex population. Data found here https://ihra.org.au/16601/intersex-numbers/*/
+    static readonly sexes: Sex[] = [
+        {name: "male", probability: 48.7},
+        {name: "female", probability: 47.9},
+        {name: "intersex", probability: 1.7}]
+
     static readonly minRadius: number = 15
     static readonly maxRadius: number = 100
 
@@ -23,22 +45,27 @@ export default class DotManager {
     static readonly frictionMag: number = this.friction * this.normalForce
 
     arr: GenderShape[] = []
-    numWanted: number
+    numWanted: number | undefined
 
-    constructor(numWanted: number) {
-        this.numWanted = numWanted;
-        this.initDots()
+    constructor(numWanted?: number) {
+        if(numWanted){
+            this.numWanted = numWanted;
+            this.initDots()
+        }
     }
 
-    createTestShape(shape?: GenderShape) {
-        if (!shape)
-            this.arr.push(new GenderShape(this));
-        else
-            this.arr.push(shape);
+    createTestShape(testShape: TestShape) {
+        const genderShape = new GenderShape(this, testShape.spawnPoint,
+            testShape.radius, testShape.distance,
+            testShape.sex, testShape.genitalWidth,
+            testShape.genitalHeight, testShape.color)
+
+
+        this.arr.push(genderShape);
     }
 
     initDots() {
-        for (let i = 0; i < this.numWanted; i++) {
+        for (let i = 0; i < this.numWanted!; i++) {
             const shape = new GenderShape(this)
             this.arr.push(shape);
         }
@@ -68,6 +95,10 @@ export default class DotManager {
         for (const shape in this.arr) {
             yield shape
         }
+    }
+
+    get other(){
+        return this.arr[Math.floor((Math.random() * this.arr.length))];
     }
 
     checkCollision() {

@@ -1,19 +1,18 @@
-import {map, random} from "./HelperFunctions";
+import {map, random, randomFromArr} from "./HelperFunctions";
 import GenderShape from "./shapeClasses";
 import paper from "paper";
 import DotManager from "./DotManager";
 
 export default class ColorManager {
     static readonly attractionTypes: string[] = ["similar", "diff", "random"]
-    static readonly minShadowBlur: number = 10
-    static readonly maxShadowBlur: number = 25
+    static readonly minShadowBlur: number = 25
+    static readonly maxShadowBlur: number = 50
+    static readonly minGray: number = 0.25
 
-    static readonly maxGray: number = 0.75
-
-    tolerance = random(10, 92)
+    tolerance = random(0, 0.5)
     changeRate = random(0.5, 1.25)
     partners = []
-    attractionType = ColorManager.attractionTypes[Math.floor(Math.random() * ColorManager.attractionTypes.length)]
+    attractionType = randomFromArr(ColorManager.attractionTypes)
 
     protected _color: paper.Color
     genderDot: GenderShape
@@ -32,7 +31,33 @@ export default class ColorManager {
         item.shadowOffset = new paper.Point(0, 0)
     }
 
-    generateColor(gray = random(0, ColorManager.maxGray)) {
+    calcAttraction(other: GenderShape){
+        //see if other is within parameters then see if our color is within other's params
+
+
+        switch(this.attractionType){
+
+            case "similar": {
+                const colorDiff = Math.abs(this.color.gray - other.color.gray)
+
+                if(colorDiff <= this.tolerance){
+
+                }
+
+
+            }
+
+
+        }
+
+
+
+
+
+    }
+
+
+    generateColor(gray = random(0, ColorManager.minGray)) {
         return new paper.Color(gray)
     }
 

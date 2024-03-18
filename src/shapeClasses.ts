@@ -1,7 +1,8 @@
 import DotManager from "./DotManager";
 import ColorManager from "./ColorManager";
-import {consoleLog, constrain, map, random} from "./HelperFunctions";
+import {consoleLog, constrain, map, random, randomFromArr} from "./HelperFunctions";
 import paper, {view} from "paper";
+import {Sex} from "./DotManager";
 
 function Appendage(x: number,
                    y: number,
@@ -77,10 +78,16 @@ class PathArray {
     }
 }
 
+interface Genital {
+    name: string
+    path: paper.Path.Line
+}
+
 export default class GenderShape {
     spawnPoint: paper.Point
     dotManager: DotManager
     colorManager: ColorManager
+    sex: string
 
     protected _distance: number
     protected _vector = new paper.Point(0, 0)
@@ -115,6 +122,7 @@ export default class GenderShape {
                 spawnPoint = paper.Point.random().multiply(paper.view.viewSize),
                 radius = random(DotManager.minRadius, DotManager.maxRadius),
                 distance = random(DotManager.minDistance, DotManager.maxDistance),
+                sex = GenderShape.determineSex(),
                 genitalWidth = random(radius / DotManager.genitalDiv, radius),
                 genitalEndHeight = random(radius / DotManager.genitalDiv, radius),
                 color?: paper.Color) {
@@ -123,14 +131,12 @@ export default class GenderShape {
         this.spawnPoint = spawnPoint
         this.radius = radius
         this._distance = distance
+        this.sex = sex
         this.genitalWidth = genitalWidth
         this.genitalEndHeight = genitalEndHeight
 
         this.scaleSpeed = DotManager.baseScaleSpeed * (1 - (this.distance / DotManager.maxDistance))
         this.growSpeed = (this.genitalWidth * this.genitalEndHeight) / ((DotManager.maxRadius / DotManager.genitalDiv) ** 2)
-
-        consoleLog("scale", this.scaleSpeed)
-        consoleLog("grow", this.growSpeed)
 
         this.colorManager = new ColorManager(this, color)
     }
@@ -141,8 +147,22 @@ export default class GenderShape {
         this.vector = new paper.Point({length: length, angle: this.rotation - 90})
     }
 
-    protected determineGender(){
+    protected static determineSex() {
+        const sexes = DotManager.sexes
+        const random = Math.random() * 100
 
+        // Loop through sexes and accumulate probability
+        let accumulatedProbability = 0;
+
+        for (const sex of sexes) {
+            accumulatedProbability += sex.probability;
+            if (random <= accumulatedProbability) {
+                return sex.name; // Return the name of the sex
+            }
+        }
+
+        // If no match is found (shouldn't happen), return the last sex
+        return sexes[sexes.length - 1].name
     }
 
     drawLineTo(point: paper.Point, color: paper.Color | string = "red") {
@@ -243,25 +263,40 @@ export default class GenderShape {
         return circle
     }
 
-    collisionDetected(value = true) {
-        this.isColliding = value
-        this.shape.fillColor = "pink"
+    genPart(height: number, yPos: number, name: string): Genital {
+        const xPos = this.spawnPoint.x - this.genitalWidth / 2
+
+        const part = Appendage(xPos, yPos, this.genitalWidth, height)
+        this.appendageArr.push(part)
+
+        return {name: name, path: part}
     }
 
-    genGenitalia(height: number, apply = true) {
-        const tolerance = this.genitalWidth / 2
-        const xPos = this.spawnPoint.x - this.genitalWidth / 2
-        const yPosButt = this.spawnPoint.y + this.radius + tolerance
-        const yPosPenis = this.spawnPoint.y - this.radius + tolerance
+    genGenitalia(height: number, sex = this.sex, apply = true) {
+        let value: Genital[]
 
-        const penis = Appendage(xPos, yPosPenis, this.genitalWidth, height)
-        const butt = Appendage(xPos, yPosButt, this.genitalWidth, height)
-        this.appendageArr.push(penis, butt)
+        switch (sex) {
+            case "male": {
+                const yPosPenis = this.spawnPoint.y - this.radius + (this.genitalWidth / 2)
+                value = [this.genPart(height, yPosPenis, "penis")]
+                break
+            }
 
-        const genitalia = {penis: penis, butt: butt}
-        if (apply) this.applyGenitalia(genitalia)
+            case "female": {
+                const yPosButt = this.spawnPoint.y + this.radius + (this.genitalWidth / 2)
+                value = [this.genPart(height, yPosButt, "butt")]
+                break
+            }
 
-        return genitalia
+            case "intersex": {
+                const yPosPenis = this.spawnPoint.y - this.radius + (this.genitalWidth / 2)
+                const yPosButt = this.spawnPoint.y + this.radius + (this.genitalWidth / 2)
+                value = [this.genPart(height, yPosPenis, "penis"), this.genPart(height, yPosButt, "butt")]
+                break
+            }
+        }
+
+        if (apply) this.applyGenitalia(value!)
     }
 
     growGenitalia() {
@@ -275,18 +310,48 @@ export default class GenderShape {
         }
     }
 
-    applyGenitalia(genitalia: { penis: paper.Path, butt: paper.Path }) {
-        const circle = this.genCircle(false)
-        const buttCircle = circle.subtract(genitalia.butt)
-        const penisCircle = buttCircle.unite(genitalia.penis)
+    applyGenitalia(genitals: Genital[]) {
+        if (genitals.length > 1) {
+            const penis = genitals[0]
+            const butt = genitals[1]
 
-        buttCircle.name = 'buttCircle'
-        penisCircle.name = 'penisCircle'
-        this.colorManager.applyVisibility(penisCircle)
+            const circle = this.genCircle(false)
+            const buttCircle = circle.subtract(butt.path)
+            const penisCircle = buttCircle.unite(penis.path)
 
-        this.circleArr.push(circle, buttCircle, penisCircle)
-        penisCircle.rotation = this.rotation
-        this.shape = penisCircle
+            buttCircle.name = 'buttCircle'
+            penisCircle.name = 'penisCircle'
+            this.colorManager.applyVisibility(penisCircle)
+
+            this.circleArr.push(circle, buttCircle, penisCircle)
+            penisCircle.rotation = this.rotation
+            this.shape = penisCircle
+
+
+        } else {
+            let genitalCircle: paper.PathItem
+            const circle = this.genCircle(false)
+            const genital = genitals[0]
+
+            switch (genital.name) {
+                case "penis": {
+                    genitalCircle = circle.unite(genital.path)
+                    genitalCircle.name = 'penisCircle'
+                    break
+                }
+
+                case "butt": {
+                    genitalCircle = circle.subtract(genital.path)
+                    genitalCircle.name = 'buttCircle'
+                    break
+                }
+            }
+
+            this.colorManager.applyVisibility(genitalCircle!)
+            this.circleArr.push(circle, genitalCircle!)
+            genitalCircle!.rotation = this.rotation
+            this.shape = genitalCircle!
+        }
     }
 
     //returns true if out of bounds
@@ -341,6 +406,12 @@ export default class GenderShape {
     applyForce(force: paper.Point) {
         this.acceleration = this.acceleration.add(force.divide(this.size))
     }
+
+    collisionDetected(value = true) {
+        this.isColliding = value
+        this.shape.fillColor = "pink"
+    }
+
 
     updatePosition() {
         if (!this.vector) this.generateFirstVector()

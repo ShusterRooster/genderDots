@@ -4,10 +4,8 @@ This project uses webpack and TypeScript. Object creation and handling is done t
 
 
 ## TODOs:
-* finish determine gender func, 49, 51, etc.
 * Fix boundaries respawning
-* Fix grow speeds
-* fix distance sorting
+* Fix grow speeds??
 * implement collision
 * implement quadtree
 * further optimizations???

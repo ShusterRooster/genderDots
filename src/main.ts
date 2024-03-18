@@ -1,5 +1,7 @@
 import paper from "paper";
-import DotManager from "./DotManager";
+import DotManager, {TestShape} from "./DotManager";
+import ColorManager from "./ColorManager";
+import GenderShape from "./shapeClasses";
 
 window.onload = function () {
     const canvas = document.getElementById('dotsCanvas') as HTMLCanvasElement
@@ -11,7 +13,11 @@ window.onload = function () {
     frameRate.fillColor = 'white'
     frameRate.fontSize = 20
 
-    const dotManager = new DotManager(50)
+    const dotManager = new DotManager(35)
+
+    const testShape: TestShape = {spawnPoint: new paper.Point(500, 500), sex: "intersex", distance: 500}
+
+    dotManager.createTestShape(testShape)
 
     paper.view.onFrame = function (event: { count: number; delta: number; }) {
         frameRate.content = `FPS: ${(event.count / event.delta)/60}`
