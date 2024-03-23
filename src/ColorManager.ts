@@ -7,7 +7,7 @@ export default class ColorManager {
     static readonly attractionTypes: string[] = ["similar", "diff", "random"]
     static readonly minShadowBlur: number = 25
     static readonly maxShadowBlur: number = 50
-    static readonly minGray: number = 0.25
+    static readonly minGray: number = 0.32
 
     tolerance = random(0, 0.5)
     changeRate = random(0.5, 1.25)

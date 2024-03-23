@@ -356,8 +356,7 @@ export default class GenderShape {
 
     //returns true if out of bounds
     outOfBounds() {
-        const viewBounds = paper.view.bounds
-        return !viewBounds.contains(this.position)
+        return !this.dotManager.outerBounds.contains(this.position)
     }
 
 
@@ -407,8 +406,8 @@ export default class GenderShape {
         this.acceleration = this.acceleration.add(force.divide(this.size))
     }
 
-    collisionDetected(value = true) {
-        this.isColliding = value
+    collisionDetected() {
+        this.isColliding = true
         this.shape.fillColor = "pink"
     }
 
@@ -425,7 +424,9 @@ export default class GenderShape {
         this.shape.position = this.shape.position.add(this.velocity)
         this.acceleration = this.acceleration.multiply(0)
 
-        // this.checkBorders()
+        if(this.outOfBounds()){
+            this.dotManager.remove(this)
+        }
     }
 
     // react(other) {

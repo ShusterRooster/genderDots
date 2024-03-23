@@ -1,5 +1,7 @@
 import GenderShape from "./shapeClasses";
 import {Color} from "paper";
+import {Quadtree} from "./QuadTree";
+import paper from "paper";
 
 export interface Sex {
     name: string,
@@ -35,6 +37,8 @@ export default class DotManager {
 
     static readonly baseScaleSpeed: number = 5
 
+    static readonly outerBoundsOffset: number = this.maxRadius * 4
+
     static readonly minSize = this.minRadius * ((this.minRadius / 5) ** 2)
     static readonly maxSize = this.maxRadius ** 3
 
@@ -46,12 +50,26 @@ export default class DotManager {
 
     arr: GenderShape[] = []
     numWanted: number | undefined
+    quadTree: Quadtree | undefined
+    outerBounds: paper.Rectangle
 
-    constructor(numWanted?: number) {
+    constructor(numWanted?: number, quadTree?: Quadtree) {
         if(numWanted){
             this.numWanted = numWanted;
             this.initDots()
         }
+
+        if(quadTree)
+            this.quadTree = quadTree
+
+        const view = paper.view.viewSize
+
+        this.outerBounds = new paper.Rectangle({
+            x: 0 - DotManager.outerBoundsOffset,
+            y: 0 - DotManager.outerBoundsOffset,
+            width: view.width + DotManager.outerBoundsOffset * 2,
+            height: view.height + DotManager.outerBoundsOffset * 2
+        })
     }
 
     createTestShape(testShape: TestShape) {
@@ -68,6 +86,7 @@ export default class DotManager {
         for (let i = 0; i < this.numWanted!; i++) {
             const shape = new GenderShape(this)
             this.arr.push(shape);
+            // this.quadTree?.insert(shape.shape)
         }
 
         console.log(`dotManager: ${this.arr}`)
@@ -109,10 +128,23 @@ export default class DotManager {
         }
     }
 
+    remove(shape: GenderShape){
+        const index = this.arr.indexOf(shape)
+        this.arr[index].shape.remove()
+        this.arr.splice(index, 1)
+    }
+
     update() {
+        this.quadTree?.clear()
+
         for (let i = 0; i < this.arr.length; i++) {
             const dot = this.arr[i]
             dot.run()
+
+            if(dot.collisionEnabled)
+                this.quadTree?.insert(dot.shape)
+
+            this.quadTree?.show()
         }
     }
 }
