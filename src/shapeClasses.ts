@@ -238,6 +238,7 @@ export default class GenderShape {
 
     run() {
         this.ready = this.doneScaling && this.doneGrowing
+        this.colorManager.run()
 
         if (!this.doneScaling) {
             this.moveTowardScreen()
@@ -351,11 +352,11 @@ export default class GenderShape {
 
     //returns true if out of bounds
     outOfBounds() {
-        return !this.dotManager?.outerBounds.contains(this.position)
+        const bounds = paper.view.bounds
+
+        return !bounds.contains(this.position) && !this.shape.bounds.intersects(bounds)
     }
 
-
-    //TODO GET WORKING
     checkBorders() {
         if (this.outOfBounds()) {
             const center = paper.view.center
@@ -385,6 +386,12 @@ export default class GenderShape {
     }
 
     applyForce(force: paper.Point | undefined, heading = false) {
+        const calc = force!.divide(this.size)
+
+        if(calc.length > DotManager.maxVector)
+            calc.normalize(DotManager.maxVector)
+
+
         this.acceleration = this.acceleration.add(force!.divide(this.size))
 
         if(heading)
@@ -399,14 +406,8 @@ export default class GenderShape {
     pointTowards(angle: number){
         angle += 90
 
-        this.drawLineTo(new paper.Point({x: this.position.x, y: this.position.y, length: 5, angle: angle}))
-
-        if(this.shape.rotation < angle)
-            this.shape.rotation += DotManager.maxForce
-
-        else if(this.shape.rotation > angle)
-            this.shape.rotation -= DotManager.maxForce
-
+        const mod =  ((angle - this.shape.rotation)/180) * DotManager.maxForce
+        this.shape.rotation += mod
     }
 
     seek(target: GenderShape) {
@@ -414,8 +415,8 @@ export default class GenderShape {
             const desired = target.shape.position.subtract(this.position)
             const d = desired.length
 
-            if (d < 100) {
-                const m = map(d, 0, 100, 0, DotManager.maxVector)
+            if (d < this.radius * 2) {
+                const m = map(d, 0, this.radius * 2, 0, DotManager.maxVector)
                 desired.normalize(m);
 
             } else {
@@ -424,7 +425,9 @@ export default class GenderShape {
 
             let steer = desired.subtract(this.velocity)
             steer.length = constrain(steer.length, 0, DotManager.maxVector)
-            this.applyForce(steer, true)
+            this.applyForce(steer)
+
+            this.pointTowards(desired.angle)
         }
 
     }
@@ -442,9 +445,11 @@ export default class GenderShape {
         this.shape.position = this.shape.position.add(this.velocity)
         this.acceleration = this.acceleration.multiply(0)
 
-        if (this.outOfBounds()) {
-            this.dotManager?.remove(this)
-        }
+
+        this.checkBorders()
+        // if (this.outOfBounds()) {
+        //     this.dotManager?.remove(this)
+        // }
     }
 
     // react(other) {

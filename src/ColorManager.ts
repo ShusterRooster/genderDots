@@ -1,4 +1,4 @@
-import {map, random, randomFromArr} from "./HelperFunctions";
+import {map, random, randomFromArr, setValueIfNull} from "./HelperFunctions";
 import GenderShape from "./shapeClasses";
 import paper from "paper";
 import DotManager from "./DotManager";
@@ -11,9 +11,12 @@ export default class ColorManager {
     static readonly maxShadowBlur: number = 50
     static readonly minGray: number = 0.32
 
-    tolerance = random(0, 0.5)
+    tolerance = random(0, 0.10)
     changeRate = random(0.5, 1.25)
     partners: GenderShape[] = []
+    partnersReady = false
+
+
     attractionType = randomFromArr(ColorManager.attractionTypes)
 
     protected _color: paper.Color
@@ -21,7 +24,7 @@ export default class ColorManager {
 
     constructor(genderDot: GenderShape, color?: paper.Color) {
         this.genderDot = genderDot
-        this._color = !color ? this.generateColor(Math.random()): color
+        this._color = setValueIfNull(color, this.generateColor(Math.random()))
     }
 
     applyVisibility(item: paper.Path | paper.PathItem = this.genderDot.shape) {
@@ -45,7 +48,7 @@ export default class ColorManager {
 
                 if(colorDiff <= this.tolerance){
                     console.log("relationship detected")
-                    this.startAttraction(other)
+                    this.addPartner(other)
                 }
 
 
@@ -53,11 +56,43 @@ export default class ColorManager {
 
 
         }
+    }
+
+    run() {
+        if(this.partners.length > 1 && this.allPartnersReady()){
+            const attractor = this.determineAttractor()
+
+            for (const shape of this.partners) {
+                    //@ts-ignore
+                    shape.colorManager.color = "pink"
+
+
+                    if(shape !== attractor!)
+                        shape.seek(attractor!)
+            }
+        }
+
+
+    }
+
+    allPartnersReady(){
+
+        if(this.partners.length > 1){
+            for (const shape of this.partners) {
+                if (!shape.ready) return false
+            }
+        }
+
+
+
+        return true
+    }
 
 
 
 
-
+    addPartner(partner: GenderShape){
+        this.partners.push(partner)
     }
 
     mutualPartner(other: GenderShape) {
@@ -72,27 +107,6 @@ export default class ColorManager {
 
         return partnerArr[0]
     }
-
-    startAttraction(other: GenderShape){
-        let attractor
-
-        if(!this.partners.includes(other)){
-            this.partners.push(other)
-
-            attractor = this.determineAttractor()
-        }
-
-        if(this.mutualPartner(other)){
-            for (const shape of this.partners) {
-                // attractor!.attractShape(shape)
-                shape.attractShape(other)
-            }
-        }
-
-
-
-    }
-
 
     generateColor(gray = random(0, ColorManager.minGray)) {
         return new paper.Color(gray)
@@ -114,6 +128,6 @@ export default class ColorManager {
 
     set color(color: paper.Color) {
         this._color = color
-        this.applyVisibility()
+        this.applyVisibility(this.genderDot.shape)
     }
 }

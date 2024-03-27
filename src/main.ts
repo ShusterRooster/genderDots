@@ -27,24 +27,12 @@ window.onload = function () {
 
     const testInter: genderShape = {distance: 0, radius: 50, genitalWidth: 25, genitalEndHeight: 25}
 
-    const testInter2: genderShape = {distance: 0, radius: 50, genitalWidth: 25, genitalEndHeight: 25}
-
-
-
-    const dotManager = new DotManager()
-    const testShape = new GenderShape(testInter)
-    const testShape2 = new GenderShape(testInter2)
-
-    dotManager.arr.push(testShape, testShape2)
+    const dotManager = new DotManager(35, tree)
 
 
     paper.view.onFrame = function (event: { count: number; delta: number; }) {
         frameRate.content = `FPS: ${(event.count / event.delta)/60}`
         dotManager.update()
-        testShape.seek(testShape2)
-
-        // testShape2.seek(testShape)
-
     }
 
     console.log(paper.project.activeLayer.children)
