@@ -8,16 +8,6 @@ export interface Sex {
     probability: number
 }
 
-export interface TestShape {
-    spawnPoint?: paper.Point,
-    radius?: number,
-    distance?: number,
-    sex?: string,
-    genitalWidth?: number,
-    genitalHeight?: number,
-    color?: paper.Color
-}
-
 export default class DotManager {
     /* Standard sex distribution data found here: https://www.ined.fr/en/everything_about_population/demographic-facts-sheets/faq/more-men-or-women-in-the-world.
     Data adjusted to mix in intersex population. Data found here https://ihra.org.au/16601/intersex-numbers/*/
@@ -35,7 +25,7 @@ export default class DotManager {
     static readonly minDistance: number = 25
     static readonly maxDistance: number = 1000
 
-    static readonly baseScaleSpeed: number = 5
+    static readonly baseScaleSpeed: number = 7.5
 
     static readonly outerBoundsOffset: number = this.maxRadius * 4
 
@@ -43,6 +33,8 @@ export default class DotManager {
     static readonly maxSize = this.maxRadius ** 3
 
     static readonly genitalDiv: number = 5
+
+    static readonly maxForce: number = 1
 
     static readonly friction: number = 0.32
     static readonly normalForce: number = 1
@@ -72,21 +64,23 @@ export default class DotManager {
         })
     }
 
-    createTestShape(testShape: TestShape) {
-        const genderShape = new GenderShape(this, testShape.spawnPoint,
-            testShape.radius, testShape.distance,
-            testShape.sex, testShape.genitalWidth,
-            testShape.genitalHeight, testShape.color)
-
-
-        this.arr.push(genderShape);
-    }
-
     initDots() {
         for (let i = 0; i < this.numWanted!; i++) {
-            const shape = new GenderShape(this)
+            const shape = new GenderShape({dotManager: this})
             this.arr.push(shape);
             // this.quadTree?.insert(shape.shape)
+        }
+
+        for (let i = 0; i < this.arr.length; i++) {
+            const a = this.arr[i]
+
+            for (let j = i + 1; j < this.arr.length - 1; j++) {
+                const b = this.arr[j]
+
+                a.colorManager.calcAttraction(b)
+            }
+
+
         }
 
         console.log(`dotManager: ${this.arr}`)
@@ -110,22 +104,8 @@ export default class DotManager {
         console.log(this.arr)
     }
 
-    * iterator() {
-        for (const shape in this.arr) {
-            yield shape
-        }
-    }
-
     get other(){
         return this.arr[Math.floor((Math.random() * this.arr.length))];
-    }
-
-    checkCollision() {
-        const iter = this.iterator()
-
-        for (const item in iter) {
-            console.log(item)
-        }
     }
 
     remove(shape: GenderShape){
@@ -137,14 +117,12 @@ export default class DotManager {
     update() {
         this.quadTree?.clear()
 
-        for (let i = 0; i < this.arr.length; i++) {
-            const dot = this.arr[i]
+        for (const dot of this.arr) {
             dot.run()
 
             if(dot.collisionEnabled)
                 this.quadTree?.insert(dot.shape)
 
-            this.quadTree?.show()
         }
     }
 }

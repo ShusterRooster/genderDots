@@ -1,9 +1,9 @@
 import paper from "paper";
-import DotManager, {TestShape} from "./DotManager";
 import ColorManager from "./ColorManager";
-import GenderShape from "./shapeClasses";
+import GenderShape, {genderShape} from "./shapeClasses";
 import {random} from "./HelperFunctions";
 import {Quadtree} from "./QuadTree";
+import DotManager from "./DotManager";
 
 window.onload = function () {
     const canvas = document.getElementById('dotsCanvas') as HTMLCanvasElement
@@ -25,15 +25,26 @@ window.onload = function () {
         maxObjects: 4,
     });
 
+    const testInter: genderShape = {distance: 0, radius: 50, genitalWidth: 25, genitalEndHeight: 25}
 
-    const dotManager = new DotManager(35, tree)
-    const testShape: TestShape = {spawnPoint: new paper.Point(500, 500), sex: "intersex", distance: 500}
-    dotManager.createTestShape(testShape)
+    const testInter2: genderShape = {distance: 0, radius: 50, genitalWidth: 25, genitalEndHeight: 25}
+
+
+
+    const dotManager = new DotManager()
+    const testShape = new GenderShape(testInter)
+    const testShape2 = new GenderShape(testInter2)
+
+    dotManager.arr.push(testShape, testShape2)
 
 
     paper.view.onFrame = function (event: { count: number; delta: number; }) {
         frameRate.content = `FPS: ${(event.count / event.delta)/60}`
         dotManager.update()
+        testShape.seek(testShape2)
+
+        // testShape2.seek(testShape)
+
     }
 
     console.log(paper.project.activeLayer.children)

@@ -4,14 +4,16 @@ import paper from "paper";
 import DotManager from "./DotManager";
 
 export default class ColorManager {
-    static readonly attractionTypes: string[] = ["similar", "diff", "random"]
+    // static readonly attractionTypes: string[] = ["similar", "diff", "random"]
+    static readonly attractionTypes: string[] = ["similar"]
+
     static readonly minShadowBlur: number = 25
     static readonly maxShadowBlur: number = 50
     static readonly minGray: number = 0.32
 
     tolerance = random(0, 0.5)
     changeRate = random(0.5, 1.25)
-    partners = []
+    partners: GenderShape[] = []
     attractionType = randomFromArr(ColorManager.attractionTypes)
 
     protected _color: paper.Color
@@ -23,10 +25,11 @@ export default class ColorManager {
     }
 
     applyVisibility(item: paper.Path | paper.PathItem = this.genderDot.shape) {
-        item.fillColor = this.color
+        item.strokeColor = this.color
         item.shadowColor = this.color
+        item.strokeWidth = 5
 
-        item.fillColor.alpha = this.calcAlpha()
+        item.strokeColor.alpha = this.calcAlpha()
         item.shadowBlur = this.calcShadow()
         item.shadowOffset = new paper.Point(0, 0)
     }
@@ -41,7 +44,8 @@ export default class ColorManager {
                 const colorDiff = Math.abs(this.color.gray - other.color.gray)
 
                 if(colorDiff <= this.tolerance){
-
+                    console.log("relationship detected")
+                    this.startAttraction(other)
                 }
 
 
@@ -51,6 +55,39 @@ export default class ColorManager {
         }
 
 
+
+
+
+    }
+
+    mutualPartner(other: GenderShape) {
+        return other.colorManager.partners.includes(this.genderDot)
+    }
+
+    determineAttractor(){
+        let partnerArr = this.partners
+        partnerArr.push(this.genderDot)
+
+        partnerArr.sort((a, b) => b.endSize - a.endSize)
+
+        return partnerArr[0]
+    }
+
+    startAttraction(other: GenderShape){
+        let attractor
+
+        if(!this.partners.includes(other)){
+            this.partners.push(other)
+
+            attractor = this.determineAttractor()
+        }
+
+        if(this.mutualPartner(other)){
+            for (const shape of this.partners) {
+                // attractor!.attractShape(shape)
+                shape.attractShape(other)
+            }
+        }
 
 
 
@@ -78,19 +115,5 @@ export default class ColorManager {
     set color(color: paper.Color) {
         this._color = color
         this.applyVisibility()
-    }
-
-    colorDistance(other: GenderShape) {
-        return ColorManager.colorDistance(this.color, other.color)
-    }
-
-    protected static distance(color: paper.Color) {
-        return Math.sqrt((color.red ** 2) + (color.green ** 2) + (color.blue ** 2))
-    }
-
-    //finds color distance between two colors
-    static colorDistance(color1: paper.Color, color2: paper.Color) {
-        const color = color2.subtract(color1)
-        return ColorManager.distance(color)
     }
 }

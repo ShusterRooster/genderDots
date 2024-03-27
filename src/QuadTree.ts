@@ -105,8 +105,6 @@ export class Quadtree {
      */
     nodes: Quadtree[];
 
-    showArr: paper.Path[] = []
-
     /**
      * Quadtree Constructor
      * @param props - bounds and properties of the node
@@ -127,7 +125,6 @@ export class Quadtree {
 
         this.objects = [];
         this.nodes = [];
-        this.show()
     }
 
     /**
@@ -463,22 +460,5 @@ export class Quadtree {
         }
 
         this.nodes = [];
-    }
-
-    show() {
-        for (let i = 0; i < this.showArr.length - 1; i++) {
-            this.showArr[i].remove()
-            this.showArr.splice(i, 1)
-        }
-
-        const path = new paper.Path.Rectangle({
-            x: this.bounds.x,
-            y: this.bounds.y,
-            width: this.bounds.width,
-            height: this.bounds.height,
-            strokeColor: "white"
-        })
-
-        this.showArr.push(path)
     }
 }

@@ -4,10 +4,10 @@ This project uses webpack and TypeScript. Object creation and handling is done t
 
 
 ## TODOs:
+* make color manager a static class
 * Fix boundaries respawning
 * Fix grow speeds??
 * implement collision
-* implement quadtree
 * further optimizations???
 * Add color attraction and physics behind that???
 

@@ -11,6 +11,13 @@ export function randomFromArr(arr: any[]){
     return arr[Math.floor((Math.random() * arr.length))];
 }
 
+export function setValueIfNull(given: any | undefined, def: any){
+    if (given === undefined)
+        return def
+    else
+        return given
+}
+
 export function checkLoaded() {
     return document.readyState === "complete";
 }
