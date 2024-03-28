@@ -2,16 +2,13 @@ import GenderShape from "./shapeClasses";
 import {Color} from "paper";
 import {Quadtree} from "./QuadTree";
 import paper from "paper";
-
-export interface Sex {
-    name: string,
-    probability: number
-}
+import {Probability} from "./HelperFunctions";
+import {Relationship} from "./Relationship";
 
 export default class DotManager {
     /* Standard sex distribution data found here: https://www.ined.fr/en/everything_about_population/demographic-facts-sheets/faq/more-men-or-women-in-the-world.
     Data adjusted to mix in intersex population. Data found here https://ihra.org.au/16601/intersex-numbers/*/
-    static readonly sexes: Sex[] = [
+    static readonly sexes: Probability[] = [
         {name: "male", probability: 48.7},
         {name: "female", probability: 47.9},
         {name: "intersex", probability: 1.7}]
@@ -26,16 +23,15 @@ export default class DotManager {
     static readonly maxDistance: number = 1000
 
     static readonly baseScaleSpeed: number = 7.5
-
     static readonly outerBoundsOffset: number = this.maxRadius * 4
 
     static readonly minSize = this.minRadius * ((this.minRadius / 5) ** 2)
     static readonly maxSize = this.maxRadius ** 3
 
     static readonly genitalDiv: number = 5
+    static readonly lonerChance: number = 15
 
     static readonly maxForce: number = 1
-
     static readonly friction: number = 0.32
     static readonly normalForce: number = 1
     static readonly frictionMag: number = this.friction * this.normalForce
@@ -71,18 +67,7 @@ export default class DotManager {
             // this.quadTree?.insert(shape.shape)
         }
 
-        for (let i = 0; i < this.arr.length; i++) {
-            const a = this.arr[i]
-
-            for (let j = i + 1; j < this.arr.length - 1; j++) {
-                const b = this.arr[j]
-
-                a.colorManager.calcAttraction(b)
-            }
-
-
-        }
-
+        Relationship.pairShapes(this.arr)
         console.log(`dotManager: ${this.arr}`)
     }
 

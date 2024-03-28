@@ -1,7 +1,17 @@
 import DotManager from "./DotManager";
 import ColorManager from "./ColorManager";
-import {between, constrain, map, random, setValueIfNull} from "./HelperFunctions";
+import {
+    between,
+    constrain,
+    map,
+    PathArray,
+    Probability,
+    random,
+    randomFromArr,
+    setValueIfNull
+} from "./HelperFunctions";
 import paper, {view} from "paper";
+import {Relationship} from "./Relationship";
 
 function Appendage(x: number,
                    y: number,
@@ -35,46 +45,6 @@ function Appendage(x: number,
     leftLine.name = "Appendage"
 
     return leftLine
-}
-
-class PathArray {
-    name: string
-    arr: paper.Path[]
-    cleanDist: number
-
-    constructor(name: string, cleanDist = 1) {
-        this.name = name
-        this.arr = []
-        this.cleanDist = cleanDist
-    }
-
-    push(...args: any[]) {
-        args.forEach((arg) => {
-            this.arr.push(arg)
-        })
-
-        this.scrubArr()
-    }
-
-    //deletes everything but last element in array unless specified otherwise
-    scrubArr() {
-        const len = this.arr.length
-
-        if (len > this.cleanDist) {
-            for (let i = 0; i < len - this.cleanDist; i++) {
-                this.arr[i].remove()
-            }
-        }
-
-        this.arr = this.arr.slice(len - this.cleanDist)
-    }
-
-    print(text?: string) {
-        if (text)
-            console.log(`${text}, ${this.name}: ${this.arr}`)
-        else
-            console.log(`${this.name}: [${this.arr}]`)
-    }
 }
 
 interface Genital {
@@ -122,6 +92,12 @@ export default class GenderShape {
     lineArr = new PathArray("lineArr")
     appendageArr = new PathArray("appendageArr", 0)
 
+    isLoner: boolean
+    relationship: Relationship | undefined
+    tolerance = random(0, 0.25)
+    changeRate = random(0.5, 1.25)
+    attractionType = randomFromArr(Relationship.attractionTypes)
+
     radius: number
     genitalWidth: number
     genitalHeight = 0
@@ -138,6 +114,8 @@ export default class GenderShape {
 
         this.scaleSpeed = DotManager.baseScaleSpeed * (1 - (this.distance / DotManager.maxDistance))
         this.growSpeed = (this.genitalWidth * this.genitalEndHeight) / ((DotManager.maxRadius / DotManager.genitalDiv) ** 2)
+
+        this.isLoner = Math.random() * 100 <= DotManager.lonerChance
 
         this.colorManager = new ColorManager(this, shape.color)
     }
@@ -164,6 +142,29 @@ export default class GenderShape {
 
         // If no match is found (shouldn't happen), return the last sex
         return sexes[sexes.length - 1].name
+    }
+
+    attractedTo(other: GenderShape) {
+        const colorDiff = Math.abs(other.color.gray - this.color.gray)
+
+        switch (this.attractionType) {
+            case "similar": {
+                return colorDiff <= this.tolerance
+            }
+
+            case "diff": {
+                return colorDiff >= 1 - this.tolerance
+            }
+
+            case "random": {
+                const rand = Math.random()
+
+                return rand <= this.tolerance
+            }
+        }
+
+        //if other conditions are not satisfied, default
+        return false
     }
 
     drawLineTo(point: paper.Point, color: paper.Color | string = "red") {
@@ -238,7 +239,9 @@ export default class GenderShape {
 
     run() {
         this.ready = this.doneScaling && this.doneGrowing
-        this.colorManager.run()
+
+        if(this.relationship)
+            this.relationship.run()
 
         if (!this.doneScaling) {
             this.moveTowardScreen()
@@ -388,13 +391,13 @@ export default class GenderShape {
     applyForce(force: paper.Point | undefined, heading = false) {
         const calc = force!.divide(this.size)
 
-        if(calc.length > DotManager.maxVector)
+        if (calc.length > DotManager.maxVector)
             calc.normalize(DotManager.maxVector)
 
 
         this.acceleration = this.acceleration.add(force!.divide(this.size))
 
-        if(heading)
+        if (heading)
             this.pointTowards(force!.angle)
     }
 
@@ -403,16 +406,19 @@ export default class GenderShape {
         this.shape.fillColor = "pink"
     }
 
-    pointTowards(angle: number){
+    pointTowards(angle: number) {
         angle += 90
 
-        const mod =  ((angle - this.shape.rotation)/180) * DotManager.maxForce
+        const mod = ((angle - this.shape.rotation) / 180) * DotManager.maxForce
         this.shape.rotation += mod
     }
 
-    seek(target: GenderShape) {
-        if(this.ready){
-            const desired = target.shape.position.subtract(this.position)
+    seek(target: GenderShape | paper.Point) {
+        if (this.ready) {
+            let desired: paper.Point
+
+            desired = target instanceof GenderShape ? target.shape.position.subtract(this.position) : target.subtract(this.position)
+
             const d = desired.length
 
             if (d < this.radius * 2) {
@@ -424,7 +430,6 @@ export default class GenderShape {
             }
 
             let steer = desired.subtract(this.velocity)
-            steer.length = constrain(steer.length, 0, DotManager.maxVector)
             this.applyForce(steer)
 
             this.pointTowards(desired.angle)

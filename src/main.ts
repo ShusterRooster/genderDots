@@ -27,7 +27,7 @@ window.onload = function () {
 
     const testInter: genderShape = {distance: 0, radius: 50, genitalWidth: 25, genitalEndHeight: 25}
 
-    const dotManager = new DotManager(35, tree)
+    const dotManager = new DotManager(25)
 
 
     paper.view.onFrame = function (event: { count: number; delta: number; }) {
