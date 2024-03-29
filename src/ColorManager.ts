@@ -1,25 +1,25 @@
-import {map, random, randomFromArr, setValueIfNull} from "./HelperFunctions";
-import GenderShape from "./shapeClasses";
 import paper from "paper";
 import DotManager from "./DotManager";
-import {aborted} from "node:util";
+import { map, random } from "./HelperFunctions";
+import GenderShape from "./shapeClasses";
 
 export default class ColorManager {
     static readonly minShadowBlur: number = 25
     static readonly maxShadowBlur: number = 50
     static readonly minGray: number = 0.32
 
+    relationshipColor: paper.Color | undefined
     protected _color: paper.Color
     genderDot: GenderShape
 
     constructor(genderDot: GenderShape, color?: paper.Color) {
         this.genderDot = genderDot
-        this._color = setValueIfNull(color, this.generateColor(Math.random()))
+        this._color = color ?? this.generateColor(Math.random())
     }
 
     applyVisibility(item: paper.Path | paper.PathItem = this.genderDot.shape) {
-        item.strokeColor = this.color
-        item.shadowColor = this.color
+        item.strokeColor = this.relationshipColor ?? this.color
+        item.shadowColor = this.relationshipColor ?? this.color
         item.strokeWidth = 5
 
         item.strokeColor.alpha = this.calcAlpha()
@@ -46,7 +46,6 @@ export default class ColorManager {
     }
 
     set color(color: paper.Color) {
-        this._color = color
         this.applyVisibility(this.genderDot.shape)
     }
 }

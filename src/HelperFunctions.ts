@@ -1,5 +1,3 @@
-import paper from "paper";
-import DotManager from "./DotManager";
 
 export interface Probability {
     name: string,
@@ -46,6 +44,10 @@ export class PathArray {
     }
 }
 
+export function determineProb(prob: number){
+    return (Math.random() * 100) <= prob
+}
+
 export function random(min: number, max: number) {
     // Ensure min is less than max
     if (min > max) {
@@ -57,13 +59,6 @@ export function random(min: number, max: number) {
 
 export function randomFromArr(arr: any[]){
     return arr[Math.floor((Math.random() * arr.length))];
-}
-
-export function setValueIfNull(given: any | undefined, def: any){
-    if (given === undefined)
-        return def
-    else
-        return given
 }
 
 export function checkLoaded() {
