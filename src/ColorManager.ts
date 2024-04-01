@@ -1,13 +1,10 @@
 import paper from "paper";
 import DotManager from "./DotManager";
-import { map, random } from "./HelperFunctions";
+import {Color, Dots, map, random} from "./HelperFunctions";
 import GenderShape from "./shapeClasses";
+import {settings} from "./HelperFunctions";
 
 export default class ColorManager {
-    static readonly minShadowBlur: number = 25
-    static readonly maxShadowBlur: number = 50
-    static readonly minGray: number = 0.32
-
     relationshipColor: paper.Color | undefined
     protected _color: paper.Color
     genderDot: GenderShape
@@ -27,18 +24,18 @@ export default class ColorManager {
         item.shadowOffset = new paper.Point(0, 0)
     }
 
-    generateColor(gray = random(0, ColorManager.minGray)) {
+    generateColor(gray = random(0, Color.minGray)) {
         return new paper.Color(gray)
     }
 
     calcShadow() {
         return map(this.genderDot.calcSize(),
-            DotManager.minRadius, DotManager.maxRadius,
-            ColorManager.minShadowBlur, ColorManager.maxShadowBlur)
+            Dots.minRadius, Dots.maxRadius,
+            Color.minShadowBlur, Color.maxShadowBlur)
     }
 
     calcAlpha(distance = this.genderDot.distance) {
-        return map(distance, 0, DotManager.maxDistance, 1, 0)
+        return map(distance, 0, Dots.maxDistance, 1, 0)
     }
 
     get color() {

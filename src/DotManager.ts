@@ -1,57 +1,17 @@
 import paper from "paper";
-import { Probability } from "./HelperFunctions";
-import GenderShape from "./shapeClasses";
+import GenderShape from "./shapeClasses.js";
 
 export default class DotManager {
-  /* Standard sex distribution data found here: https://www.ined.fr/en/everything_about_population/demographic-facts-sheets/faq/more-men-or-women-in-the-world.
-    Data adjusted to mix in intersex population. Data found here https://ihra.org.au/16601/intersex-numbers/*/
-  static readonly sexes: Probability[] = [
-    { name: "male", probability: 48.7 },
-    { name: "female", probability: 47.9 },
-    { name: "intersex", probability: 1.7 },
-  ];
 
-  static readonly minRadius: number = 15;
-  static readonly maxRadius: number = 100;
-
-  static readonly minVector: number = 5;
-  static readonly maxVector: number = 10;
-
-  static readonly minDistance: number = 25;
-  static readonly maxDistance: number = 1000;
-
-  static readonly baseScaleSpeed: number = 7.5;
-  static readonly outerBoundsOffset: number = this.maxRadius * 4;
-
-  static readonly minSize = this.minRadius * (this.minRadius / 5) ** 2;
-  static readonly maxSize = this.maxRadius ** 3;
-
-  static readonly genitalDiv: number = 5;
-  static readonly lonerChance: number = 15;
-
-  static readonly maxForce: number = 1;
-  static readonly friction: number = 0.32;
-  static readonly normalForce: number = 1;
-  static readonly frictionMag: number = this.friction * this.normalForce;
 
   arr: GenderShape[] = [];
   numWanted: number | undefined;
-  outerBounds: paper.Rectangle;
 
   constructor(numWanted?: number) {
     if (numWanted) {
       this.numWanted = numWanted;
       this.initDots();
     }
-
-    const view = paper.view.viewSize;
-
-    this.outerBounds = new paper.Rectangle({
-      x: 0 - DotManager.outerBoundsOffset,
-      y: 0 - DotManager.outerBoundsOffset,
-      width: view.width + DotManager.outerBoundsOffset * 2,
-      height: view.height + DotManager.outerBoundsOffset * 2,
-    });
   }
 
   initDots() {

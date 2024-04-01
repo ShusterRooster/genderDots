@@ -1,8 +1,6 @@
 import paper from "paper";
 import ColorManager from "./ColorManager";
 import GenderShape, {genderShape} from "./shapeClasses";
-import {random} from "./HelperFunctions";
-import {Quadtree} from "./QuadTree";
 import DotManager from "./DotManager";
 
 window.onload = function () {
@@ -16,23 +14,16 @@ window.onload = function () {
     frameRate.fillColor = 'white'
     frameRate.fontSize = 20
 
-    const view = paper.view.viewSize
+    // const view = paper.view.viewSize
+    // const testInter: genderShape = {distance: 0, radius: 50, genitalWidth: 25, genitalEndHeight: 25}
 
-    // Create a new Quadtree
-    const tree = new Quadtree({
-        width: view.width,
-        height: view.height,
-        maxObjects: 4,
-    });
+    // const dotManager = new DotManager(25)
 
-    const testInter: genderShape = {distance: 0, radius: 50, genitalWidth: 25, genitalEndHeight: 25}
-
-    const dotManager = new DotManager(25)
 
 
     paper.view.onFrame = function (event: { count: number; delta: number; }) {
         frameRate.content = `FPS: ${(event.count / event.delta)/60}`
-        dotManager.update()
+        // dotManager.update()
     }
 
     console.log(paper.project.activeLayer.children)

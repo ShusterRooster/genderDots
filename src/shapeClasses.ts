@@ -7,7 +7,9 @@ import {
     map,
     PathArray,
     random,
-    randomFromArr
+    randomFromArr,
+    Dots,
+    Relation
 } from "./HelperFunctions";
 import { Relationship } from "./Relationship";
 
@@ -93,10 +95,10 @@ export default class GenderShape {
 
   isLoner: boolean;
   relationship: Relationship | undefined;
-  tolerance = random(0, 0.08);
-  desiredColor = random(0, 1);
+  attrFactor1 = random(Relation.minAttrFactor, Relation.maxAttrFactor);
+  attrFactor2 = random(Relation.minAttrFactor, Relation.maxAttrFactor);
   changeRate = random(0.5, 1.25);
-  attractionType = randomFromArr(Relationship.attractionTypes);
+  attractionType = randomFromArr(Relation.attractionTypes);
 
   radius: number;
   genitalWidth: number;
@@ -109,35 +111,35 @@ export default class GenderShape {
       shape.spawnPoint ?? paper.Point.random().multiply(paper.view.viewSize);
 
     this.radius =
-      shape.radius ?? random(DotManager.minRadius, DotManager.maxRadius);
+      shape.radius ?? random(Dots.minRadius, Dots.maxRadius);
 
     this.distance =
-      shape.distance ?? random(DotManager.minDistance, DotManager.maxDistance);
+      shape.distance ?? random(Dots.minDistance, Dots.maxDistance);
 
     this.sex = shape.sex ?? GenderShape.determineSex();
 
     this.genitalWidth =
       shape.genitalWidth ??
-      random(this.radius / DotManager.genitalDiv, this.radius);
+      random(this.radius / Dots.genitalDiv, this.radius);
 
     this.genitalEndHeight =
       shape.genitalEndHeight ??
-      random(this.radius / DotManager.genitalDiv, this.radius);
+      random(this.radius / Dots.genitalDiv, this.radius);
 
     this.scaleSpeed =
-      DotManager.baseScaleSpeed * (1 - this.distance / DotManager.maxDistance);
+      Dots.baseScaleSpeed * (1 - this.distance / Dots.maxDistance);
 
     this.growSpeed =
       (this.genitalWidth * this.genitalEndHeight) /
-      (DotManager.maxRadius / DotManager.genitalDiv) ** 2;
+      (Dots.maxRadius / Dots.genitalDiv) ** 2;
 
-    this.isLoner = Math.random() * 100 <= DotManager.lonerChance;
+    this.isLoner = Math.random() * 100 <= Dots.lonerChance;
     this.colorManager = new ColorManager(this, shape.color);
   }
 
   //runs only once to generate the first vector
   protected generateFirstVector() {
-    const length = random(DotManager.minVector, DotManager.maxVector);
+    const length = random(Dots.minVector, Dots.maxVector);
     this.vector = new paper.Point({
       length: length,
       angle: this.rotation - 90,
@@ -145,7 +147,7 @@ export default class GenderShape {
   }
 
   protected static determineSex() {
-    const sexes = DotManager.sexes;
+    const sexes = Dots.sexes;
     const random = Math.random() * 100;
 
     // Loop through sexes and accumulate probability
@@ -165,15 +167,21 @@ export default class GenderShape {
   attractedTo(other: GenderShape) {
     const colorDiff = Math.abs(other.color.gray - this.color.gray);
     // console.log(`colorDiff: ${colorDiff}`)
-    // console.log(`tolerance: ${this.tolerance}`)
+    // console.log(`attr1: ${this.attrFactor1}`)
+    // console.log(`attr2: ${this.attrFactor2}`)
+
 
     switch (this.attractionType) {
       case "similar": {
-        return colorDiff <= this.tolerance
+        return colorDiff <= this.attrFactor1 &&
+            colorDiff <= this.attrFactor2
       }
 
       case "diff": {
-        return 1 - colorDiff >= this.tolerance
+        const inv = 1 - colorDiff
+
+        return inv >= this.attrFactor1 &&
+            inv >= this.attrFactor2
       }
 
     //   case "random": {
@@ -199,20 +207,20 @@ export default class GenderShape {
     const size = this.genitalWidth * height * this.radius;
     return map(
       size,
-      DotManager.minSize,
-      DotManager.maxSize,
-      DotManager.minRadius,
-      DotManager.maxRadius
+      Dots.minSize,
+      Dots.maxSize,
+      Dots.minRadius,
+      Dots.maxRadius
     );
   }
 
   calcScaledRadius(distance = this.distance) {
     return map(
       distance,
-      DotManager.minDistance,
-      DotManager.maxDistance,
+      Dots.minDistance,
+      Dots.maxDistance,
       this.radius,
-      DotManager.minRadius
+      Dots.minRadius
     );
   }
 
@@ -231,8 +239,8 @@ export default class GenderShape {
   set vector(vector: paper.Point) {
     const len = constrain(
       vector.length,
-      DotManager.minVector,
-      DotManager.maxVector
+      Dots.minVector,
+      Dots.maxVector
     );
     this._vector = new paper.Point({ length: len, angle: vector.angle });
 
@@ -438,8 +446,8 @@ export default class GenderShape {
       let force = this.position.subtract(shape.position);
       const distance = constrain(
         force.length,
-        DotManager.minVector,
-        DotManager.maxVector
+        Dots.minVector,
+        Dots.maxVector
       );
       const strength = (G * this.size * shape.size) / distance ** 2;
 
@@ -450,8 +458,8 @@ export default class GenderShape {
   applyForce(force: paper.Point | undefined, heading = false) {
     const calc = force!.divide(this.size);
 
-    if (calc.length > DotManager.maxVector)
-      calc.normalize(DotManager.maxVector);
+    if (calc.length > Dots.maxVector)
+      calc.normalize(Dots.maxVector);
 
     this.acceleration = this.acceleration.add(force!.divide(this.size));
 
@@ -466,7 +474,7 @@ export default class GenderShape {
   pointTowards(angle: number) {
     angle += 90;
 
-    const mod = ((angle - this.shape.rotation) / 180) * DotManager.maxForce;
+    const mod = ((angle - this.shape.rotation) / 180) * Dots.maxForce;
     this.shape.rotation += mod;
   }
 
@@ -482,10 +490,10 @@ export default class GenderShape {
       const d = desired.length;
 
       if (d < this.radius * 2) {
-        const m = map(d, 0, this.radius * 2, 0, DotManager.maxVector);
+        const m = map(d, 0, this.radius * 2, 0, Dots.maxVector);
         desired.normalize(m);
       } else {
-        desired.normalize(DotManager.maxVector);
+        desired.normalize(Dots.maxVector);
       }
 
       let steer = desired.subtract(this.velocity);
@@ -498,9 +506,9 @@ export default class GenderShape {
   updatePosition() {
     if (!this.vector) this.generateFirstVector();
 
-    const dragMag = DotManager.friction * this.velocity.length ** 2;
+    const dragMag = Dots.friction * this.velocity.length ** 2;
     const drag = this.velocity
-      .multiply(-DotManager.friction)
+      .multiply(-Dots.friction)
       .normalize(dragMag);
     this.applyForce(drag);
 

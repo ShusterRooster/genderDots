@@ -1,0 +1,53 @@
+[Dots]
+# Standard sex distribution data found here: https://www.ined.fr/en/everything_about_population/demographic-facts-sheets/faq/more-men-or-women-in-the-world.
+# Data adjusted to mix in intersex population. Data found here https://ihra.org.au/16601/intersex-numbers
+maleProb = 48.7
+femaleProb = 47.9
+intersexProb = 1.7
+
+minRadius = 15
+maxRadius = 100
+
+minVector = 5
+maxVector = 10
+
+minDistance = 25
+maxDistance = 500
+
+baseScaleSpeed = 7.5
+#minSize = this.minRadius * (this.minRadius / 5) ** 2
+#maxSize = this.maxRadius ** 3
+
+genitalDiv = 5
+maxForce = 1
+friction = 0.32
+normalForce = 1
+
+
+[Relationship]
+lonerChance = 15
+minAttrFactor = 0
+maxAttrFactor = 0.5
+
+attractionTypes = ["similar", "diff", "random"]
+
+relationshipTypes = [
+    "seek",
+    "orbit",
+    "chain",
+    "merge",
+]
+
+maxPartners = 6
+stealChance = 5
+
+
+[Color]
+minShadowBlur = 25
+maxShadowBlur = 50
+minGray = 0.32
+
+[Chain]
+chainThickness = 8
+#minChainLength = DotManager.minRadius * 1.50
+#maxChainLength = DotManager.maxRadius * 1.50
