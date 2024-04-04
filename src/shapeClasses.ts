@@ -92,12 +92,9 @@ export default class GenderShape {
     lineArr = new PathArray("lineArr");
     appendageArr = new PathArray("appendageArr", 0);
 
-    isLoner: boolean;
     relationship: Relationship | undefined;
-    attrFactor1 = random(settings.minAttrFactor, settings.maxAttrFactor);
-    attrFactor2 = random(settings.minAttrFactor, settings.maxAttrFactor);
-    changeRate = random(0.5, 1.25);
-    attractionType = randomFromArr(settings.attractionTypes);
+    attrFactor = random(settings.minAttrFactor, settings.maxAttrFactor);
+    isLoner = Math.random() * 100 <= settings.lonerChance;
 
     radius: number;
     genitalWidth: number;
@@ -132,7 +129,6 @@ export default class GenderShape {
             (this.genitalWidth * this.genitalEndHeight) /
             (settings.maxRadius / settings.genitalDiv) ** 2;
 
-        this.isLoner = Math.random() * 100 <= settings.lonerChance;
         this.colorManager = new ColorManager(this, shape.color);
     }
 
@@ -163,36 +159,21 @@ export default class GenderShape {
         return sexes[sexes.length - 1].name;
     }
 
-    attractedTo(other: GenderShape) {
-        const colorDiff = Math.abs(other.color.gray - this.color.gray);
-        // console.log(`colorDiff: ${colorDiff}`)
-        // console.log(`attr1: ${this.attrFactor1}`)
-        // console.log(`attr2: ${this.attrFactor2}`)
+    attractedTo(other: GenderShape): boolean {
+        // Absolute difference between the colors
+        const colorDifference = Math.abs(this.gray - other.gray);
 
-
-        switch (this.attractionType) {
-            case "similar": {
-                return colorDiff <= this.attrFactor1 &&
-                    colorDiff <= this.attrFactor2
-            }
-
-            case "diff": {
-                const inv = 1 - colorDiff
-
-                return inv >= this.attrFactor1 &&
-                    inv >= this.attrFactor2
-            }
-
-            //   case "random": {
-            //     const rand = Math.random();
-
-            //     return rand <= this.tolerance;
-            //   }
-        }
-
-        //if other conditions are not satisfied, default
-        return false;
+        // Objects are attracted if:
+        // 1. Color difference is within the threshold
+        // 2. At least one object is very light or very dark (not in the middle)
+        // 3. They are not exactly the same color
+        return (colorDifference <= settings.attractionThreshold &&
+                (this.gray <= 0.4 || this.gray >= 0.8 ||
+                    other.gray <= 0.4 || other.gray >= 0.8)) &&
+            (this.gray !== other.gray);
     }
+
+
 
 
     drawLineTo(point: paper.Point, color: paper.Color | string = "red") {
@@ -248,6 +229,10 @@ export default class GenderShape {
 
     get color() {
         return this.colorManager.color;
+    }
+
+    get gray() {
+        return this.colorManager.gray;
     }
 
     get position() {

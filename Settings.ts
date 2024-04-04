@@ -12,7 +12,7 @@ export const maxRadius: number = 100;
 export const minVector: number = 5;
 export const maxVector: number = 10;
 export const minDistance: number = 25;
-export const maxDistance: number = 1000;
+export const maxDistance: number = 500;
 export const baseScaleSpeed: number = 7.5;
 export const outerBoundsOffset: number = maxRadius * 4;
 export const minSize: number = minRadius * (minRadius / 5) ** 2;
@@ -28,6 +28,7 @@ export const frictionMag: number = friction * normalForce;
 export const minShadowBlur: number = 25
 export const maxShadowBlur: number = 50
 export const minGray: number = 0.32
+export const midGray: number = (1 - minGray) / 2
 
 //Relationship
 export const attractionTypes: string[] = ["similar", "diff", "random"];
@@ -40,8 +41,9 @@ export const relationshipTypes: string[] = [
 
 export const maxPartners: number = 6;
 export const chainThickness: number = 8;
-export const stealChance: number = 5;
-export const minChainLength: number = minRadius * 1.50
-export const maxChainLength: number = maxRadius * 1.50
+export const stealChance: number = 0.2;
+export const minChainLength: number = 0
+export const maxChainLength: number = 1000
 export const minAttrFactor: number = 0
 export const maxAttrFactor: number = 0.5
+export const attractionThreshold: number = 0.15;

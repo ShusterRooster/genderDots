@@ -42,6 +42,10 @@ export default class ColorManager {
         return this._color
     }
 
+    get gray() {
+        return this._color.gray
+    }
+
     set color(color: paper.Color) {
         this.applyVisibility(this.genderDot.shape)
     }

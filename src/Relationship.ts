@@ -8,6 +8,7 @@ import {
 import GenderShape from "./shapeClasses";
 import {ChainWeb} from "./Chain";
 import * as settings from "../Settings";
+import DotManager from "./DotManager";
 
 export class Relationship {
     partners: GenderShape[];
@@ -18,18 +19,17 @@ export class Relationship {
     chainWeb: ChainWeb | undefined
 
     color: paper.Color;
-    attractionType: string;
+    dotManager: DotManager | undefined
 
     relationshipType = randomFromArr(settings.relationshipTypes);
     partnersReady = false;
 
     constructor(
         partners: GenderShape[],
-        attractionType: string,
-        color?: paper.Color
-    ) {
+        color?: paper.Color) {
+
         this.partners = partners;
-        this.attractionType = attractionType;
+        this.dotManager = this.partners[0].dotManager
 
         this.applyRelationshipAll();
 
@@ -48,21 +48,17 @@ export class Relationship {
 
                 if (a.attractedTo(b) && b.attractedTo(a)) {
                     if (a.relationship == undefined && b.relationship == undefined) {
-                        const rel = new Relationship([a, b], a.attractionType);
+                        const rel = new Relationship([a, b]);
                     }
                 }
             }
         }
     }
 
-    get dotManager() {
-        return this.partners[0].dotManager;
-    }
-
     seekPartners() {
         let arr = this.dotManager!.arr;
         arr = arr.filter((obj) => !obj.isLoner);
-        // arr = arr.filter((obj) => obj.relationship == undefined);
+        arr = arr.filter((obj) => obj.relationship == undefined);
 
 
         for (const shape of arr) {
@@ -75,16 +71,20 @@ export class Relationship {
     run() {
         this.applyRelationshipAll();
         if (this.relationshipType == "seek") this.seek();
-        // else if (this.relationshipType == "orbit") this.orbit();
+        else if (this.relationshipType == "orbit") this.orbit();
         else if (this.relationshipType == "chain") {
-            if(this.chainWeb == undefined)
-                this.chainWeb = new ChainWeb(this.readyPartnersArr())
+            if(this.chainWeb == undefined){
+                if(this.readyPartnersArr().length >= 2){
+                    this.chainWeb = new ChainWeb(this.readyPartnersArr())
+                    console.log("chain made")
+                }
+            }
             else
-                this.chainWeb.run()
+                this.chainWeb!.run()
         }
-        else if (this.relationshipType == "merge") this.merge();
+        // else if (this.relationshipType == "merge") this.merge();
 
-        // this.seekPartners();
+        this.seekPartners();
     }
 
     static mutual(a: GenderShape, b: GenderShape) {
@@ -125,11 +125,13 @@ export class Relationship {
         }
     }
 
-    determineAttractor() {
-        const arr = this.readyPartnersArr()
+    determineAttractor(): GenderShape {
+        // const arr = this.readyPartnersArr()
+        //
+        // arr.sort((a, b) => b.endSize - a.endSize);
+        // return arr[0];
 
-        arr.sort((a, b) => b.endSize - a.endSize);
-        return arr[0];
+        return randomFromArr(this.readyPartnersArr())
     }
 
     seek() {
@@ -139,24 +141,15 @@ export class Relationship {
 
         for (const shape of this.readyPartnersArr()) {
             if (shape !== this.attractor) {
-                shape.seek(this.attractor);
+                shape.seek(this?.attractor);
             }
         }
     }
 
     calcOrbit() {
-        let pointTotal = new paper.Point(0, 0);
-        let sizeTotal = 0;
+        let sizeAvg = Relationship.getAvgFromArr(this.partners, "radius")
 
-        for (const shape of this.readyPartnersArr()) {
-            pointTotal = pointTotal.add(shape.position);
-            sizeTotal += shape.radius + shape.genitalEndHeight;
-        }
-
-        pointTotal = pointTotal.divide(this.readyPartnersArr().length);
-        sizeTotal /= this.readyPartnersArr().length;
-
-        this.orbitCircle = new paper.Path.Circle(pointTotal, sizeTotal);
+        this.orbitCircle = new paper.Path.Circle(this.getAvgPos(), sizeAvg * 2);
 
         //@ts-ignore
         this.orbitCircle.strokeColor = "blue";
@@ -175,6 +168,16 @@ export class Relationship {
                 shape.seek(point);
             }
         }
+    }
+
+    getAvgPos() {
+        let point = new paper.Point(0, 0)
+
+        for (const shape of this.readyPartnersArr()) {
+            point = point.add(shape.position)
+        }
+
+        return point.divide(this.readyPartnersArr().length)
     }
 
     getCombinedSex() {
@@ -208,10 +211,6 @@ export class Relationship {
 
         const obj = this.readyPartnersArr()[0];
 
-        for (const shape of this.readyPartnersArr()) {
-            shape.dotManager?.remove(shape);
-        }
-
         const newShape = new GenderShape({
             dotManager: obj.dotManager,
             spawnPoint: obj.position,
@@ -220,10 +219,16 @@ export class Relationship {
             sex: sex,
             genitalWidth: avgWidth,
             genitalEndHeight: avgHeight,
-            color: avgColor,
+            color: this.color,
         });
 
         obj.dotManager?.arr.push(newShape);
+        this.partners.push(newShape)
+
+        // for (let i = 0; i < this.readyPartnersArr().length; i++) {
+        //     const obj = this.readyPartnersArr()[i]
+        //     console.log(obj)
+        // }
     }
 
     merge() {
@@ -251,11 +256,22 @@ export class Relationship {
         const arr = this.partners;
         arr.push(partner);
 
-        if (
-            Relationship.allMutual(arr) &&
-            this.partners.length < this.maxPartners
-        ) {
+        if (Relationship.allMutual(arr) &&
+            this.partners.length < this.maxPartners) {
             this.partners.push(partner);
+
+            switch (this.relationshipType){
+                case "chain": {
+                    this.chainWeb = new ChainWeb(this.readyPartnersArr())
+                    break
+                }
+
+                case "orbit": {
+                    this.calcOrbit()
+                    break
+                }
+
+            }
             //   partner.colorManager.color = this.color;
         }
     }
