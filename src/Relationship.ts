@@ -3,14 +3,15 @@ import {
     determineProb,
     PathArray,
     random,
-    randomFromArr, Relation,
+    randomFromArr
 } from "./HelperFunctions";
 import GenderShape from "./shapeClasses";
 import {ChainWeb} from "./Chain";
+import * as settings from "../Settings";
 
 export class Relationship {
     partners: GenderShape[];
-    maxPartners = Math.floor(random(2, Relation.maxPartners + 1));
+    maxPartners = Math.floor(random(2, settings.maxPartners + 1));
 
     attractor: GenderShape | undefined;
     orbitCircle: paper.Path.Circle | undefined;
@@ -19,7 +20,7 @@ export class Relationship {
     color: paper.Color;
     attractionType: string;
 
-    relationshipType = randomFromArr(Relation.relationshipTypes);
+    relationshipType = randomFromArr(settings.relationshipTypes);
     partnersReady = false;
 
     constructor(
@@ -65,7 +66,7 @@ export class Relationship {
 
 
         for (const shape of arr) {
-            if (determineProb(Relation.stealChance)) {
+            if (determineProb(settings.stealChance)) {
                 this.addPartner(shape);
             }
         }

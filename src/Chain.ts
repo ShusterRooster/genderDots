@@ -1,7 +1,8 @@
 import GenderShape from "./shapeClasses";
 import DotManager from "./DotManager";
-import {ChainConfig, PathArray} from "./HelperFunctions";
+import {PathArray} from "./HelperFunctions";
 import paper from "paper";
+import {maxChainLength} from "../Settings";
 
 export default class Chain {
     a: GenderShape
@@ -57,7 +58,7 @@ export default class Chain {
         if(this.chain != undefined){
             let mixedForce: paper.Point
 
-            if(this.chain.length >= ChainConfig.maxChainLength){
+            if(this.chain.length >= maxChainLength){
                 const forces = this.getForces()
                 mixedForce = forces.strong.vector!.add(forces.weak.vector!)
 

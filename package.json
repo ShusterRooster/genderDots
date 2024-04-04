@@ -1,12 +1,8 @@
 {
   "dependencies": {
-    "@iarna/toml": "^2.2.5",
-    "@lcdev/toml-loader": "^1.1.0",
-    "@types/iarna__toml": "^2.0.5",
     "@types/webpack-node-externals": "^3.0.4",
     "dotenv": "^16.4.5",
     "esm": "^3.2.25",
-    "file-loader": "^6.2.0",
     "node-polyfill-webpack-plugin": "^3.0.0",
     "paper": "^0.12.17",
     "webpack-node-externals": "^3.0.0"

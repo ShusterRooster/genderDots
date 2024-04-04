@@ -1,9 +1,7 @@
 import paper from "paper";
-import GenderShape from "./shapeClasses.js";
+import GenderShape from "./shapeClasses";
 
 export default class DotManager {
-
-
   arr: GenderShape[] = [];
   numWanted: number | undefined;
 

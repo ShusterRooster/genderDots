@@ -1,31 +1,3 @@
-import fs from 'fs';
-import toml from '@iarna/toml';
-
-function getTOML(){
-    try {
-        return fs.readFileSync('../settings.toml', 'utf-8')
-    }
-    catch (e) {
-        console.log(e)
-    }
-
-    return
-}
-
-
-const settings = getTOML()
-
-console.log(settings)
-console.log(toml.parse(settings!))
-
-// export const settings = toml.parse(file)
-// export const Dots = settings.Dots
-// export const Color = settings.Color
-// export const Relation = settings.Relationship
-// export const ChainConfig = settings.Chain
-
-
-
 export interface Probability {
     name: string,
     probability: number

@@ -17,13 +17,13 @@ window.onload = function () {
     // const view = paper.view.viewSize
     // const testInter: genderShape = {distance: 0, radius: 50, genitalWidth: 25, genitalEndHeight: 25}
 
-    // const dotManager = new DotManager(25)
+    const dotManager = new DotManager(25)
 
 
 
     paper.view.onFrame = function (event: { count: number; delta: number; }) {
         frameRate.content = `FPS: ${(event.count / event.delta)/60}`
-        // dotManager.update()
+        dotManager.update()
     }
 
     console.log(paper.project.activeLayer.children)
