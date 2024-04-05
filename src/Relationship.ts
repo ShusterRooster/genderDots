@@ -84,7 +84,6 @@ export class Relationship {
                 this.chainWeb!.run()
             }
         }
-        else if (this.relationshipType == "merge") this.merge();
 
         this.seekPartners();
     }
@@ -142,72 +141,6 @@ export class Relationship {
                 }
             }
         }
-    }
-
-    getCombinedSex() {
-        const arr = this.partners;
-        const allEqual = arr.every((val) => val.sex === arr[0].sex);
-
-        if (allEqual) return arr[0].sex;
-        else return "intersex";
-    }
-
-    getAvgColor() {
-        let totalColor = 0
-
-        for (const shape of this.readyPartnersArr()) {
-            totalColor += shape.colorManager.color.gray
-        }
-
-        totalColor /= this.readyPartnersArr().length;
-        return new paper.Color(totalColor)
-    }
-
-    mergeShape() {
-        const avgRad = Relationship.getAvgFromArr(this.readyPartnersArr(), "radius");
-        const avgHeight = Relationship.getAvgFromArr(
-            this.readyPartnersArr(),
-            "genitalEndHeight"
-        );
-        const avgWidth = Relationship.getAvgFromArr(this.readyPartnersArr(), "genitalWidth");
-        const sex = this.getCombinedSex();
-
-        const obj = this.readyPartnersArr()[0];
-
-        const newShape = new GenderShape({
-            dotManager: this.dotManager,
-            spawnPoint: obj.position,
-            radius: avgRad,
-            distance: 0,
-            sex: sex,
-            genitalWidth: avgWidth,
-            genitalEndHeight: avgHeight,
-            color: this.color,
-        });
-
-        obj.dotManager?.arr.push(newShape);
-        this.partners.push(newShape)
-
-        for (const shape of this.readyPartnersArr()) {
-            if(shape !== newShape)
-                this.dotManager?.remove(shape)
-        }
-    }
-
-    merge() {
-        this.seek();
-
-        for (const shape of this.readyPartnersArr()) {
-            if (shape !== this.attractor && this.attractor) {
-                if (this.attractor?.shape.contains(shape.position)) {
-                    this.mergeShape();
-                }
-            }
-        }
-    }
-
-    allPartnersReady() {
-        return !this.partners.some((shape) => !shape.ready);
     }
 
     readyPartnersArr() {

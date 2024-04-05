@@ -35,9 +35,7 @@ export const midGray: number = (1 - minGray) / 2
 //Relationship
 export const relationshipTypes: string[] = [
     "seek",
-    // "orbit",
-    "chain",
-    "merge",
+    "chain"
 ];
 
 export const maxPartners: number = 6;
