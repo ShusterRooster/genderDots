@@ -1,10 +1,9 @@
 import GenderShape from "./shapeClasses";
-import DotManager from "./DotManager";
 import {PathArray} from "./HelperFunctions";
 import paper from "paper";
 import * as settings from "../Settings"
 
-export default class Chain {
+export class Chain {
     a: GenderShape
     b: GenderShape
 
@@ -21,7 +20,7 @@ export default class Chain {
 
     run(){
         this.genChain()
-        this.constrain()
+        this.constrainMovement()
     }
 
     get chain(): paper.Path | undefined{
@@ -30,11 +29,15 @@ export default class Chain {
 
     set chain(chain: paper.Path){
         this._chain = chain
-        this.chainArr.push(this.chain)
+        this.chainArr.push(chain)
+    }
+
+    remove(){
+        this.chain!.remove()
     }
 
     genChain(){
-        if(this.a.ready && this.b.ready){
+        if((this.a.ready && this.b.ready) && !(this.a.outOfBounds() || this.b.outOfBounds())){
             this.chain = new paper.Path.Line({
                 from: this.a.position,
                 to: this.b.position,
@@ -55,47 +58,26 @@ export default class Chain {
             return {strong: this.b, weak: this.a}
     }
 
-    constrain(){
-        if(this.chain != undefined){
-            let mixedForce: paper.Point
-
-            if(this.chain.length >= settings.maxChainLength){
-                const forces = this.getForces()
-                mixedForce = forces.strong.vector!.add(forces.weak.vector!)
-
-                forces.weak.applyForce(forces.strong.vector)
-                forces.strong.applyForce(forces.weak.vector)
-            }
-
-        }
-    }
-
     constrainMovement() {
-        const aPos = this.a.position
-        const bPos = this.b.position
+        if(this.chain!.length > settings.maxChainLength){
+            const center = this.a.position.subtract(this.b.position).divide(2)
+            const aCenterDiff = center.subtract(this.a.position)
+            const bCenterDiff = center.subtract(this.b.position)
 
-        // Option 1: Project onto maximum length vector
-        const normalizedDirection = this.getNormalizedDirection();
-        const constrainedPosition = new paper.Point(
-            aPos.x + normalizedDirection.x * settings.maxChainLength,
-            aPos.y + normalizedDirection.y * settings.maxChainLength)
+            this.a.applyForce(aCenterDiff.divide(settings.chainMoveDiv * this.b.size))
+            this.b.applyForce(bCenterDiff.divide(settings.chainMoveDiv * this.a.size))
+        }
 
-        this.b.position = constrainedPosition
+        else if(this.chain!.length < settings.minChainLength){
+            const linePt = new paper.Point({
+                angle: this.chain!.rotation,
+                length: settings.minChainLength
+            })
 
-        // Option 2: Adjust both objects equally (consider for smooth movement)
-        const halfDistance = settings.maxChainLength - this.chain!.length
-        const adjustment = new paper.Point(
-            (normalizedDirection.x * halfDistance) / 2,
-            (normalizedDirection.y * halfDistance) / 2)
-
-        this.a.position = this.a.position.subtract(adjustment)
-        this.b.position = this.b.position.add(adjustment)
-    }
-
-    private getNormalizedDirection() {
-        const d = this.a.position.subtract(this.b.position)
-        const magnitude = Math.sqrt(d.x * d.x + d.y * d.y)
-        return new paper.Point(d.x / magnitude, d.y / magnitude)
+            const end = this.a.position.add(linePt)
+            const bEndDiff = end.subtract(this.b.position)
+            this.b.applyForce(bEndDiff.divide(this.b.size * settings.chainMoveDiv))
+        }
     }
 }
 
@@ -106,7 +88,13 @@ export class ChainWeb {
 
     constructor(arr: GenderShape[]) {
         this.arr = arr
-        this.makeChains()
+        this.initChains()
+    }
+
+    removeAll(){
+        for (const chain of this.chainArr) {
+            chain.remove()
+        }
     }
 
     run(){
@@ -115,17 +103,11 @@ export class ChainWeb {
         }
     }
 
-    makeChains() {
-        if(this.arr.length == 2){
-            const chain = new Chain(this.arr[0], this.arr[1])
-            this.chainArr.push(chain)
-            return
-        }
-
+    initChains() {
         for (let i = 0; i < this.arr.length; i++) {
             const a = this.arr[i];
 
-            for (let j = i + 1; j < this.arr.length; j++) {
+            for (let j = i + 1; j < this.arr.length - 1; j++) {
                 const b = this.arr[j];
 
                 const chain = new Chain(a, b)

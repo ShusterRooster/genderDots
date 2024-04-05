@@ -1,7 +1,6 @@
 import paper from "paper";
 import {
     determineProb,
-    PathArray,
     random,
     randomFromArr
 } from "./HelperFunctions";
@@ -71,16 +70,20 @@ export class Relationship {
     run() {
         this.applyRelationshipAll();
         if (this.relationshipType == "seek") this.seek();
-        else if (this.relationshipType == "orbit") this.orbit();
+        // else if (this.relationshipType == "orbit") this.orbit();
         else if (this.relationshipType == "chain") {
             if(this.chainWeb == undefined){
-                if(this.readyPartnersArr().length >= 2){
-                    this.chainWeb = new ChainWeb(this.readyPartnersArr())
-                    console.log("chain made")
-                }
+                this.chainWeb = new ChainWeb(this.readyPartnersArr())
             }
-            else
+            else if (this.chainWeb!.arr.length < this.readyPartnersArr().length) {
+                this.chainWeb?.removeAll()
+                this.chainWeb = undefined
+
+                this.chainWeb = new ChainWeb(this.readyPartnersArr())
+            }
+            else {
                 this.chainWeb!.run()
+            }
         }
         // else if (this.relationshipType == "merge") this.merge();
 
@@ -126,22 +129,18 @@ export class Relationship {
     }
 
     determineAttractor(): GenderShape {
-        // const arr = this.readyPartnersArr()
-        //
-        // arr.sort((a, b) => b.endSize - a.endSize);
-        // return arr[0];
-
         return randomFromArr(this.readyPartnersArr())
     }
 
     seek() {
-        if (this.attractor == undefined) {
+        if (this.attractor == undefined)
             this.attractor = this.determineAttractor();
-        }
 
-        for (const shape of this.readyPartnersArr()) {
-            if (shape !== this.attractor) {
-                shape.seek(this?.attractor);
+        else if (this.attractor) {
+            for (const shape of this.readyPartnersArr()) {
+                if (shape !== this.attractor) {
+                    shape.seek(this.attractor);
+                }
             }
         }
     }
@@ -155,20 +154,20 @@ export class Relationship {
         this.orbitCircle.strokeColor = "blue";
     }
 
-    orbit() {
-        if (this.orbitCircle == undefined) this.calcOrbit();
-
-        for (const shape of this.readyPartnersArr()) {
-            if (!this.orbitCircle!.intersects(shape.shape)) {
-                shape.seek(this.orbitCircle!.position);
-            } else {
-                const offset = this.orbitCircle!.length / shape.radius;
-                const point = this.orbitCircle!.getPointAt(offset);
-
-                shape.seek(point);
-            }
-        }
-    }
+    // orbit() {
+    //     if (this.orbitCircle == undefined) this.calcOrbit();
+    //
+    //     for (const shape of this.readyPartnersArr()) {
+    //         if (!this.orbitCircle!.intersects(shape.shape)) {
+    //             shape.seek(this.orbitCircle!.position);
+    //         } else {
+    //             const offset = this.orbitCircle!.length / shape.radius;
+    //             const point = this.orbitCircle!.getPointAt(offset);
+    //
+    //             shape.seek(point);
+    //         }
+    //     }
+    // }
 
     getAvgPos() {
         let point = new paper.Point(0, 0)
@@ -259,19 +258,6 @@ export class Relationship {
         if (Relationship.allMutual(arr) &&
             this.partners.length < this.maxPartners) {
             this.partners.push(partner);
-
-            switch (this.relationshipType){
-                case "chain": {
-                    this.chainWeb = new ChainWeb(this.readyPartnersArr())
-                    break
-                }
-
-                case "orbit": {
-                    this.calcOrbit()
-                    break
-                }
-
-            }
             //   partner.colorManager.color = this.color;
         }
     }

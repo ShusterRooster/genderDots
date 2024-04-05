@@ -9,8 +9,8 @@ export const sexes: Probability[] = [
 
 export const minRadius: number = 15;
 export const maxRadius: number = 100;
-export const minVector: number = 5;
-export const maxVector: number = 10;
+export const minVector: number = 2.5;
+export const maxVector: number = 7.5;
 export const minDistance: number = 25;
 export const maxDistance: number = 500;
 export const baseScaleSpeed: number = 7.5;
@@ -34,16 +34,17 @@ export const midGray: number = (1 - minGray) / 2
 export const attractionTypes: string[] = ["similar", "diff", "random"];
 export const relationshipTypes: string[] = [
     "seek",
-    "orbit",
+    // "orbit",
     "chain",
     "merge",
 ];
 
 export const maxPartners: number = 6;
-export const chainThickness: number = 8;
+export const chainThickness: number = 5;
 export const stealChance: number = 0.2;
-export const minChainLength: number = 0
-export const maxChainLength: number = 1000
+export const minChainLength: number = 50
+export const maxChainLength: number = 750
+export const chainMoveDiv: number = 4
 export const minAttrFactor: number = 0
 export const maxAttrFactor: number = 0.5
 export const attractionThreshold: number = 0.15;

@@ -2,12 +2,10 @@ import paper from "paper";
 import ColorManager from "./ColorManager";
 import DotManager from "./DotManager";
 import {
-    between,
     constrain,
     map,
     PathArray,
-    random,
-    randomFromArr
+    random
 } from "./HelperFunctions";
 import {Relationship} from "./Relationship";
 import * as settings from "../Settings"
@@ -462,15 +460,9 @@ export default class GenderShape {
         this.shape.rotation += mod;
     }
 
-    seek(target: GenderShape | paper.Point) {
+    seek(target: GenderShape) {
         if (this.ready) {
-            let desired: paper.Point;
-
-            desired =
-                target instanceof GenderShape
-                    ? target.shape.position.subtract(this.position)
-                    : target.subtract(this.position);
-
+            const desired = target.position.subtract(this.position)
             const d = desired.length;
 
             if (d < this.radius * 2) {
@@ -480,11 +472,17 @@ export default class GenderShape {
                 desired.normalize(settings.maxVector);
             }
 
-            let steer = desired.subtract(this.velocity);
-            this.applyForce(steer);
+            if(!target.outOfBounds()){
+                const steer = desired.subtract(this.velocity);
+                this.applyForce(steer);
 
-            this.pointTowards(desired.angle);
+                this.pointTowards(desired.angle);
+            }
         }
+    }
+
+    seekPoint(target: paper.Point){
+
     }
 
     updatePosition() {
