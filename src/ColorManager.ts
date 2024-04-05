@@ -1,13 +1,24 @@
-import paper from "paper";
+import paper, {settings} from "paper";
 import DotManager from "./DotManager";
 import {map, random} from "./HelperFunctions";
 import GenderShape from "./shapeClasses";
-import {maxDistance, maxRadius, maxShadowBlur, minGray, minRadius, minShadowBlur} from "../Settings";
+import {
+    maxDistance,
+    maxRadius,
+    maxShadowBlur,
+    maxThickness,
+    minGray,
+    minRadius,
+    minShadowBlur,
+    minThickness
+} from "../Settings";
 
 export default class ColorManager {
     relationshipColor: paper.Color | undefined
     protected _color: paper.Color
     genderDot: GenderShape
+
+    strokeWidth = random(minThickness, maxThickness)
 
     constructor(genderDot: GenderShape, color?: paper.Color) {
         this.genderDot = genderDot
@@ -17,7 +28,7 @@ export default class ColorManager {
     applyVisibility(item: paper.Path | paper.PathItem = this.genderDot.shape) {
         item.strokeColor = this.relationshipColor ?? this.color
         item.shadowColor = this.relationshipColor ?? this.color
-        item.strokeWidth = 5
+        item.strokeWidth = this.strokeWidth
 
         item.strokeColor.alpha = this.calcAlpha()
         item.shadowBlur = this.calcShadow()

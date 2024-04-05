@@ -47,7 +47,7 @@ export class Relationship {
 
                 if (a.attractedTo(b) && b.attractedTo(a)) {
                     if (a.relationship == undefined && b.relationship == undefined) {
-                        const rel = new Relationship([a, b]);
+                        new Relationship([a, b]);
                     }
                 }
             }
@@ -70,7 +70,6 @@ export class Relationship {
     run() {
         this.applyRelationshipAll();
         if (this.relationshipType == "seek") this.seek();
-        // else if (this.relationshipType == "orbit") this.orbit();
         else if (this.relationshipType == "chain") {
             if(this.chainWeb == undefined){
                 this.chainWeb = new ChainWeb(this.readyPartnersArr())
@@ -85,7 +84,7 @@ export class Relationship {
                 this.chainWeb!.run()
             }
         }
-        // else if (this.relationshipType == "merge") this.merge();
+        else if (this.relationshipType == "merge") this.merge();
 
         this.seekPartners();
     }
@@ -145,40 +144,6 @@ export class Relationship {
         }
     }
 
-    calcOrbit() {
-        let sizeAvg = Relationship.getAvgFromArr(this.partners, "radius")
-
-        this.orbitCircle = new paper.Path.Circle(this.getAvgPos(), sizeAvg * 2);
-
-        //@ts-ignore
-        this.orbitCircle.strokeColor = "blue";
-    }
-
-    // orbit() {
-    //     if (this.orbitCircle == undefined) this.calcOrbit();
-    //
-    //     for (const shape of this.readyPartnersArr()) {
-    //         if (!this.orbitCircle!.intersects(shape.shape)) {
-    //             shape.seek(this.orbitCircle!.position);
-    //         } else {
-    //             const offset = this.orbitCircle!.length / shape.radius;
-    //             const point = this.orbitCircle!.getPointAt(offset);
-    //
-    //             shape.seek(point);
-    //         }
-    //     }
-    // }
-
-    getAvgPos() {
-        let point = new paper.Point(0, 0)
-
-        for (const shape of this.readyPartnersArr()) {
-            point = point.add(shape.position)
-        }
-
-        return point.divide(this.readyPartnersArr().length)
-    }
-
     getCombinedSex() {
         const arr = this.partners;
         const allEqual = arr.every((val) => val.sex === arr[0].sex);
@@ -205,13 +170,12 @@ export class Relationship {
             "genitalEndHeight"
         );
         const avgWidth = Relationship.getAvgFromArr(this.readyPartnersArr(), "genitalWidth");
-        const avgColor = this.getAvgColor();
         const sex = this.getCombinedSex();
 
         const obj = this.readyPartnersArr()[0];
 
         const newShape = new GenderShape({
-            dotManager: obj.dotManager,
+            dotManager: this.dotManager,
             spawnPoint: obj.position,
             radius: avgRad,
             distance: 0,
@@ -224,10 +188,10 @@ export class Relationship {
         obj.dotManager?.arr.push(newShape);
         this.partners.push(newShape)
 
-        // for (let i = 0; i < this.readyPartnersArr().length; i++) {
-        //     const obj = this.readyPartnersArr()[i]
-        //     console.log(obj)
-        // }
+        for (const shape of this.readyPartnersArr()) {
+            if(shape !== newShape)
+                this.dotManager?.remove(shape)
+        }
     }
 
     merge() {

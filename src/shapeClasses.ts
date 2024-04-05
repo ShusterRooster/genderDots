@@ -481,10 +481,6 @@ export default class GenderShape {
         }
     }
 
-    seekPoint(target: paper.Point){
-
-    }
-
     updatePosition() {
         if (!this.vector) this.generateFirstVector();
 

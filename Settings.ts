@@ -28,10 +28,11 @@ export const frictionMag: number = friction * normalForce;
 export const minShadowBlur: number = 25
 export const maxShadowBlur: number = 50
 export const minGray: number = 0.32
+export const minThickness: number = 1
+export const maxThickness: number = 12
 export const midGray: number = (1 - minGray) / 2
 
 //Relationship
-export const attractionTypes: string[] = ["similar", "diff", "random"];
 export const relationshipTypes: string[] = [
     "seek",
     // "orbit",
