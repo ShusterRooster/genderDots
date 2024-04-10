@@ -1,5 +1,4 @@
-import paper, {settings} from "paper";
-import DotManager from "./DotManager";
+import paper from "paper";
 import {map, random} from "./HelperFunctions";
 import GenderShape from "./shapeClasses";
 import {

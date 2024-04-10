@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>dev testing!!!!</title>
+    <title>genderDots</title>
 </head>
 
 <style>
@@ -13,19 +13,7 @@
         overflow: hidden;
     }
 
-    #dotInfo {
-        padding-left: 10px;
-        border-radius: 10px;
-        position: absolute;
-        user-select: none;
-        font-size: 2em;
-        border-spacing: 3px;
-        /*width: 120px;*/
-        color: #EEEEEE;
-        background-color: #343434;
-    }
-
-    canvas[resize] {
+    #dotsCanvas {
         width: 100vw;
         height: 100vh;
         background-color: #000000;
@@ -34,6 +22,6 @@
 
 <body>
 <canvas id="dotsCanvas" resize></canvas>
-<div id="dotInfo"></div>
+<script type="module" src="src/main.ts"></script>
 </body>
 </html>

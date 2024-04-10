@@ -1,17 +1,18 @@
 # Welcome to the GenderDots Repo!
 
-This project uses webpack and TypeScript. Object creation and handling is done through **paper.js**. Run commands can be found in `package.json` and the run config can be modified in `webpack.config.js`
+This project uses Parcel and TypeScript. Object creation and handling is done through **paper.js**. Run commands can be found in `package.json`.
 
+## How this works:
+Everything is started through the `main.ts` file which initializes and runs a DotManager instance. The DotManager handles a given set of dots and allows for the removal, addition, containing, etc. of the dots.
 
-## TODOs:
-* make color manager a static class
-* Fix boundaries respawning
-* Fix grow speeds??
-* implement collision
-* further optimizations???
-* Add color attraction and physics behind that???
+Upon running, the dots are paired up to be in relationships and once they're ready, meaning they are in their final forms, they will enter a relationship with dots that are decided by the program based off their attraction to one another.
 
+In terms of future developments, the `seek()` functionality within the GenderShape class is quite buggy due to the dots teleporting once they go out of bounds. 
 
+Code could definitely be optimized but given that this is my first large-ish scale project, I don't know what I'm doing. 
+
+### **Feel free to leave suggestions but this project will not be maintained for very long and this repo is only public because I am using my repo through a CDN**
+If you are interested in this project (for whatever reason) feel free to message me! :)
 
 ```
                                .,,uod8B8bou,,.

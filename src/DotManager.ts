@@ -1,4 +1,3 @@
-import paper from "paper";
 import GenderShape from "./shapeClasses";
 
 export default class DotManager {
@@ -18,30 +17,6 @@ export default class DotManager {
       this.arr.push(shape);
       // this.quadTree?.insert(shape.shape)
     }
-
-    console.log(`dotManager: ${this.arr}`);
-  }
-
-  //TODO get placing objects by distance working??
-  sortByDist() {
-    this.arr.sort((a, b) =>
-      a.distance < b.distance ? -1 : a.distance > b.distance ? 1 : 0
-    );
-
-    //run each dot once so they have a shape
-    for (let i = 0; i < this.arr.length; i++) {
-      this.arr[i].run();
-    }
-
-    for (let i = this.arr.length; i > 0; i--) {
-      this.arr[i].shape.sendToBack();
-    }
-
-    console.log(this.arr);
-  }
-
-  get other() {
-    return this.arr[Math.floor(Math.random() * this.arr.length)];
   }
 
   remove(shape: GenderShape) {
