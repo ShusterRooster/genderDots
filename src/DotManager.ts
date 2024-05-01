@@ -1,4 +1,5 @@
 import GenderShape from "./shapeClasses";
+import {Relationship} from "./Relationship";
 
 export default class DotManager {
   arr: GenderShape[] = [];
@@ -15,8 +16,8 @@ export default class DotManager {
     for (let i = 0; i < this.numWanted!; i++) {
       const shape = new GenderShape({ dotManager: this });
       this.arr.push(shape);
-      // this.quadTree?.insert(shape.shape)
     }
+    Relationship.pairShapes(this.arr)
   }
 
   remove(shape: GenderShape) {

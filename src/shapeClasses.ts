@@ -82,9 +82,6 @@ export default class GenderShape {
     acceleration = new paper.Point(0, 0);
     velocity = new paper.Point(0, 0);
 
-    collisionEnabled = false;
-    isColliding = false;
-
     circleArr = new PathArray("circleArr");
     shapeArr = new PathArray("shapeArr");
     lineArr = new PathArray("lineArr");
@@ -171,16 +168,6 @@ export default class GenderShape {
             (this.gray !== other.gray);
     }
 
-
-
-
-    drawLineTo(point: paper.Point, color: paper.Color | string = "red") {
-        const line = new paper.Path.Line(this.shape.position, point);
-        // @ts-ignore
-        line.strokeColor = color;
-        this.lineArr.push(line);
-    }
-
     calcSize(height = this.genitalHeight) {
         const size = this.genitalWidth * height * this.radius;
         return map(
@@ -251,26 +238,8 @@ export default class GenderShape {
         this.shapeArr.push(this._shape);
     }
 
-    get infoString() {
-        let str = `point: ${this.spawnPoint}<br>`;
-
-        if (this.shape !== null) {
-            str += `shape: ${this.position}<br>`;
-            if (this.vector !== null) {
-                str += `vector: ${this.vector}<br>acc: ${this.acceleration}<br>vel: ${this.velocity}`;
-            }
-        }
-
-        return str;
-    }
-
-    checkReady() {
-        this.ready = this.doneScaling && this.doneGrowing;
-        if (this.ready) Relationship.pairShapes(this.dotManager!.arr);
-    }
-
     run() {
-        this.checkReady();
+        this.ready = this.doneScaling && this.doneGrowing;
 
         if (this.relationship !== undefined) this.relationship.run();
 
@@ -278,7 +247,6 @@ export default class GenderShape {
             this.moveTowardScreen();
         } else {
             this.growGenitalia();
-            this.collisionEnabled = true;
             this.updatePosition();
         }
     }
@@ -446,11 +414,6 @@ export default class GenderShape {
         this.acceleration = this.acceleration.add(force!.divide(this.size));
 
         if (heading) this.pointTowards(force!.angle);
-    }
-
-    collisionDetected() {
-        this.isColliding = true;
-        this.shape.fillColor = "pink";
     }
 
     pointTowards(angle: number) {

@@ -40,9 +40,9 @@ export const relationshipTypes: string[] = [
 
 export const maxPartners: number = 6;
 export const chainThickness: number = 5;
-export const stealChance: number = 0.2;
+export const stealChance: number = 2;
 export const minChainLength: number = 50
-export const maxChainLength: number = 750
+export const maxChainLength: number = 300
 export const chainMoveDiv: number = 4
 export const minAttrFactor: number = 0
 export const maxAttrFactor: number = 0.5

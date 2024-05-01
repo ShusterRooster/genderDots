@@ -592,9 +592,18 @@ var _dotManagerDefault = parcelHelpers.interopDefault(_dotManager);
 window.onload = function() {
     const canvas = document.getElementById("dotsCanvas");
     (0, _paperDefault.default).setup(canvas);
-    const dotManager = new (0, _dotManagerDefault.default)(35);
+    let numWanted = 0;
+    const width = (0, _paperDefault.default).view.viewSize.width;
+    if (width >= 900) numWanted = 40;
+    else if (width <= 991) numWanted = 25;
+    else if (width <= 767) numWanted = 20;
+    else if (width <= 479) numWanted = 15;
+    const dotManager = new (0, _dotManagerDefault.default)(numWanted);
     (0, _paperDefault.default).view.onFrame = function() {
         dotManager.update();
+    };
+    (0, _paperDefault.default).view.onResize = function() {
+        (0, _paperDefault.default).view.viewSize = new (0, _paperDefault.default).Size(window.innerWidth, window.innerHeight);
     };
 };
 
@@ -19456,6 +19465,7 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _shapeClasses = require("./shapeClasses");
 var _shapeClassesDefault = parcelHelpers.interopDefault(_shapeClasses);
+var _relationship = require("./Relationship");
 class DotManager {
     arr = [];
     numWanted;
@@ -19471,8 +19481,8 @@ class DotManager {
                 dotManager: this
             });
             this.arr.push(shape);
-        // this.quadTree?.insert(shape.shape)
         }
+        (0, _relationship.Relationship).pairShapes(this.arr);
     }
     remove(shape) {
         const index = this.arr.indexOf(shape);
@@ -19485,7 +19495,7 @@ class DotManager {
 }
 exports.default = DotManager;
 
-},{"./shapeClasses":"kb5TM","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kb5TM":[function(require,module,exports) {
+},{"./shapeClasses":"kb5TM","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./Relationship":"9KvTc"}],"kb5TM":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _paper = require("paper");
@@ -19493,7 +19503,6 @@ var _paperDefault = parcelHelpers.interopDefault(_paper);
 var _colorManager = require("./ColorManager");
 var _colorManagerDefault = parcelHelpers.interopDefault(_colorManager);
 var _helperFunctions = require("./HelperFunctions");
-var _relationship = require("./Relationship");
 var _settings = require("../Settings");
 function Appendage(x, y, width, height) {
     const leftLine = new (0, _paperDefault.default).Path.Line({
@@ -19556,8 +19565,6 @@ class GenderShape {
     ready = false;
     acceleration = new (0, _paperDefault.default).Point(0, 0);
     velocity = new (0, _paperDefault.default).Point(0, 0);
-    collisionEnabled = false;
-    isColliding = false;
     circleArr = new (0, _helperFunctions.PathArray)("circleArr");
     shapeArr = new (0, _helperFunctions.PathArray)("shapeArr");
     lineArr = new (0, _helperFunctions.PathArray)("lineArr");
@@ -19610,12 +19617,6 @@ class GenderShape {
         // 3. They are not exactly the same color
         return colorDifference <= _settings.attractionThreshold && (this.gray <= 0.4 || this.gray >= 0.8 || other.gray <= 0.4 || other.gray >= 0.8) && this.gray !== other.gray;
     }
-    drawLineTo(point, color = "red") {
-        const line = new (0, _paperDefault.default).Path.Line(this.shape.position, point);
-        // @ts-ignore
-        line.strokeColor = color;
-        this.lineArr.push(line);
-    }
     calcSize(height = this.genitalHeight) {
         const size = this.genitalWidth * height * this.radius;
         return (0, _helperFunctions.map)(size, _settings.minSize, _settings.maxSize, _settings.minRadius, _settings.maxRadius);
@@ -19660,25 +19661,12 @@ class GenderShape {
         this._shape.name = "currentShape";
         this.shapeArr.push(this._shape);
     }
-    get infoString() {
-        let str = `point: ${this.spawnPoint}<br>`;
-        if (this.shape !== null) {
-            str += `shape: ${this.position}<br>`;
-            if (this.vector !== null) str += `vector: ${this.vector}<br>acc: ${this.acceleration}<br>vel: ${this.velocity}`;
-        }
-        return str;
-    }
-    checkReady() {
-        this.ready = this.doneScaling && this.doneGrowing;
-        if (this.ready) (0, _relationship.Relationship).pairShapes(this.dotManager.arr);
-    }
     run() {
-        this.checkReady();
+        this.ready = this.doneScaling && this.doneGrowing;
         if (this.relationship !== undefined) this.relationship.run();
         if (!this.doneScaling) this.moveTowardScreen();
         else {
             this.growGenitalia();
-            this.collisionEnabled = true;
             this.updatePosition();
         }
     }
@@ -19807,10 +19795,6 @@ class GenderShape {
         this.acceleration = this.acceleration.add(force.divide(this.size));
         if (heading) this.pointTowards(force.angle);
     }
-    collisionDetected() {
-        this.isColliding = true;
-        this.shape.fillColor = "pink";
-    }
     pointTowards(angle) {
         angle += 90;
         const mod = (angle - this.shape.rotation) / 180 * _settings.maxForce;
@@ -19845,7 +19829,7 @@ class GenderShape {
 }
 exports.default = GenderShape;
 
-},{"paper":"agkns","./ColorManager":"eGYFB","./HelperFunctions":"iZ5gr","./Relationship":"9KvTc","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"eGYFB":[function(require,module,exports) {
+},{"paper":"agkns","./ColorManager":"eGYFB","./HelperFunctions":"iZ5gr","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"eGYFB":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _paper = require("paper");
@@ -20039,9 +20023,9 @@ const relationshipTypes = [
 ];
 const maxPartners = 6;
 const chainThickness = 5;
-const stealChance = 0.2;
+const stealChance = 2;
 const minChainLength = 50;
-const maxChainLength = 750;
+const maxChainLength = 300;
 const chainMoveDiv = 4;
 const minAttrFactor = 0;
 const maxAttrFactor = 0.5;
@@ -20060,12 +20044,10 @@ class Relationship {
     partners;
     maxPartners = Math.floor((0, _helperFunctions.random)(2, _settings.maxPartners + 1));
     attractor;
-    orbitCircle;
     chainWeb;
     color;
     dotManager;
     relationshipType = (0, _helperFunctions.randomFromArr)(_settings.relationshipTypes);
-    partnersReady = false;
     constructor(partners, color){
         this.partners = partners;
         this.dotManager = this.partners[0].dotManager;
@@ -20099,13 +20081,10 @@ class Relationship {
         if (this.relationshipType == "seek") this.seek();
         else if (this.relationshipType == "chain") {
             if (this.chainWeb == undefined) this.chainWeb = new (0, _chain.ChainWeb)(this.readyPartnersArr());
-            else if (this.chainWeb.arr.length < this.readyPartnersArr().length) {
-                this.chainWeb?.removeAll();
-                this.chainWeb = undefined;
-                this.chainWeb = new (0, _chain.ChainWeb)(this.readyPartnersArr());
-            } else this.chainWeb.run();
+            else if (this.chainWeb.chainArr.length < this.readyPartnersArr().length * (this.readyPartnersArr().length - 1)) this.regenChains();
+            else this.chainWeb.run();
         }
-        this.seekPartners();
+        if (this.partners.length < this.maxPartners) this.seekPartners();
     }
     static mutual(a, b) {
         return a.attractedTo(b) && b.attractedTo(a);
@@ -20144,6 +20123,15 @@ class Relationship {
             for (const shape of this.readyPartnersArr())if (shape !== this.attractor) shape.seek(this.attractor);
         }
     }
+    regenChains() {
+        this.chainWeb?.removeAll();
+        this.chainWeb = undefined;
+        this.chainWeb = new (0, _chain.ChainWeb)(this.readyPartnersArr());
+    }
+    remove(shape) {
+        const index = this.partners.indexOf(shape);
+        this.partners.splice(index, 1);
+    }
     readyPartnersArr() {
         const arr = this.partners;
         return arr.filter((obj)=>obj.ready);
@@ -20151,7 +20139,12 @@ class Relationship {
     addPartner(partner) {
         const arr = this.partners;
         arr.push(partner);
-        if (Relationship.allMutual(arr) && this.partners.length < this.maxPartners) this.partners.push(partner);
+        if (Relationship.allMutual(arr) && this.partners.length < this.maxPartners) {
+            partner.relationship?.remove(partner);
+            if (this.chainWeb !== undefined) this.regenChains();
+            this.applyRelationship(partner);
+            this.partners.push(partner);
+        }
     }
 }
 
@@ -20191,7 +20184,7 @@ class Chain {
         this.chain.remove();
     }
     genChain() {
-        if (this.a.ready && this.b.ready && !(this.a.outOfBounds() || this.b.outOfBounds())) this.chain = new (0, _paperDefault.default).Path.Line({
+        if (this.a.ready && this.b.ready) this.chain = new (0, _paperDefault.default).Path.Line({
             from: this.a.position,
             to: this.b.position,
             strokeColor: this.color,
@@ -20243,6 +20236,7 @@ class ChainWeb {
         for (const chain of this.chainArr)chain.run();
     }
     initChains() {
+        this.chainArr = [];
         for(let i = 0; i < this.arr.length; i++){
             const a = this.arr[i];
             for(let j = i + 1; j < this.arr.length - 1; j++){

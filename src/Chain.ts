@@ -37,7 +37,7 @@ export class Chain {
     }
 
     genChain(){
-        if((this.a.ready && this.b.ready) && !(this.a.outOfBounds() || this.b.outOfBounds())){
+        if((this.a.ready && this.b.ready)){
             this.chain = new paper.Path.Line({
                 from: this.a.position,
                 to: this.b.position,
@@ -104,6 +104,8 @@ export class ChainWeb {
     }
 
     initChains() {
+        this.chainArr = []
+
         for (let i = 0; i < this.arr.length; i++) {
             const a = this.arr[i];
 

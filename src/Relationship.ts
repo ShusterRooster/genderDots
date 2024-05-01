@@ -14,14 +14,12 @@ export class Relationship {
     maxPartners = Math.floor(random(2, settings.maxPartners + 1));
 
     attractor: GenderShape | undefined;
-    orbitCircle: paper.Path.Circle | undefined;
     chainWeb: ChainWeb | undefined
 
     color: paper.Color;
     dotManager: DotManager | undefined
 
     relationshipType = randomFromArr(settings.relationshipTypes);
-    partnersReady = false;
 
     constructor(
         partners: GenderShape[],
@@ -74,18 +72,16 @@ export class Relationship {
             if(this.chainWeb == undefined){
                 this.chainWeb = new ChainWeb(this.readyPartnersArr())
             }
-            else if (this.chainWeb!.arr.length < this.readyPartnersArr().length) {
-                this.chainWeb?.removeAll()
-                this.chainWeb = undefined
-
-                this.chainWeb = new ChainWeb(this.readyPartnersArr())
+            else if (this.chainWeb.chainArr.length < this.readyPartnersArr().length * (this.readyPartnersArr().length - 1)) {
+                this.regenChains()
             }
             else {
                 this.chainWeb!.run()
             }
         }
 
-        this.seekPartners();
+        if(this.partners.length < this.maxPartners)
+            this.seekPartners();
     }
 
     static mutual(a: GenderShape, b: GenderShape) {
@@ -143,6 +139,17 @@ export class Relationship {
         }
     }
 
+    regenChains() {
+        this.chainWeb?.removeAll()
+        this.chainWeb = undefined
+        this.chainWeb = new ChainWeb(this.readyPartnersArr())
+    }
+
+    remove(shape: GenderShape) {
+        const index = this.partners.indexOf(shape)
+        this.partners.splice(index, 1)
+    }
+
     readyPartnersArr() {
         const arr = this.partners;
         return arr.filter((obj) => obj.ready);
@@ -154,8 +161,13 @@ export class Relationship {
 
         if (Relationship.allMutual(arr) &&
             this.partners.length < this.maxPartners) {
+            partner.relationship?.remove(partner)
+
+            if(this.chainWeb !== undefined)
+                this.regenChains()
+
+            this.applyRelationship(partner)
             this.partners.push(partner);
-            //   partner.colorManager.color = this.color;
         }
     }
 }
