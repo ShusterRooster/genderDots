@@ -30,7 +30,6 @@ export const maxShadowBlur: number = 50
 export const minGray: number = 0.32
 export const minThickness: number = 1
 export const maxThickness: number = 12
-export const midGray: number = (1 - minGray) / 2
 
 //Relationship
 export const relationshipTypes: string[] = [
@@ -38,12 +37,16 @@ export const relationshipTypes: string[] = [
     "chain"
 ];
 
+export const seekInterval: number = 1000
+
 export const maxPartners: number = 6;
-export const chainThickness: number = 5;
-export const stealChance: number = 2;
+// export const chainThickness: number = 5;
+export const stealChance: number = 0.5;
+export const attractionThreshold: number = 0.15;
+
+//Chain
+export const chainMoveDiv: number = 4
+export const minChainThickness: number = 3
+export const maxChainThickness: number = 6
 export const minChainLength: number = 50
 export const maxChainLength: number = 300
-export const chainMoveDiv: number = 4
-export const minAttrFactor: number = 0
-export const maxAttrFactor: number = 0.5
-export const attractionThreshold: number = 0.15;

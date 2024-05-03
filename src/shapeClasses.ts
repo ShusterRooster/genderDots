@@ -7,8 +7,9 @@ import {
     PathArray,
     random
 } from "./HelperFunctions";
-import {Relationship} from "./Relationship";
+import {ChainRelationship, Relationship, SeekRelationship} from "./Relationship";
 import * as settings from "../Settings"
+import {maxVector} from "../Settings";
 
 function Appendage(
     x: number,
@@ -73,7 +74,7 @@ export default class GenderShape {
 
     protected scaleSpeed: number;
     protected growSpeed: number;
-    protected rotation = random(0, 360);
+    rotation = random(0, 360);
 
     doneGrowing = false;
     doneScaling = false;
@@ -87,8 +88,7 @@ export default class GenderShape {
     lineArr = new PathArray("lineArr");
     appendageArr = new PathArray("appendageArr", 0);
 
-    relationship: Relationship | undefined;
-    attrFactor = random(settings.minAttrFactor, settings.maxAttrFactor);
+    relationship: Relationship | SeekRelationship | ChainRelationship | undefined;
     isLoner = Math.random() * 100 <= settings.lonerChance;
 
     radius: number;
@@ -236,6 +236,18 @@ export default class GenderShape {
         this._shape = shape;
         this._shape.name = "currentShape";
         this.shapeArr.push(this._shape);
+    }
+
+    onReady(): Promise<boolean> {
+        return new Promise((resolve) => {
+            const checkReady = () => {
+                if (this.ready)
+                    resolve(this.ready)
+                else
+                    setTimeout(checkReady, 100)
+            }
+            checkReady()
+        })
     }
 
     run() {
@@ -411,7 +423,7 @@ export default class GenderShape {
         if (calc.length > settings.maxVector)
             calc.normalize(settings.maxVector);
 
-        this.acceleration = this.acceleration.add(force!.divide(this.size));
+        this.acceleration = this.acceleration.add(calc);
 
         if (heading) this.pointTowards(force!.angle);
     }
@@ -424,23 +436,21 @@ export default class GenderShape {
     }
 
     seek(target: GenderShape) {
-        if (this.ready) {
-            const desired = target.position.subtract(this.position)
-            const d = desired.length;
+        const desired = target.position.subtract(this.position)
+        const d = desired.length;
 
-            if (d < this.radius * 2) {
-                const m = map(d, 0, this.radius * 2, 0, settings.maxVector);
-                desired.normalize(m);
-            } else {
-                desired.normalize(settings.maxVector);
-            }
+        if (d < this.size) {
+            const m = map(d, 0, this.size, 0, maxVector);
+            desired.normalize(m);
+        } else {
+            desired.normalize(maxVector);
+        }
 
-            if(!target.outOfBounds()){
-                const steer = desired.subtract(this.velocity);
-                this.applyForce(steer);
+        if(!target.outOfBounds()){
+            const steer = desired.subtract(this.velocity);
+            this.applyForce(steer);
 
-                this.pointTowards(desired.angle);
-            }
+            this.pointTowards(desired.angle);
         }
     }
 

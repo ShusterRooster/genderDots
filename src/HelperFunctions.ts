@@ -1,3 +1,5 @@
+import GenderShape from "./shapeClasses";
+
 export interface Probability {
     name: string,
     probability: number
@@ -35,12 +37,22 @@ export class PathArray {
         this.arr = this.arr.slice(len - this.cleanDist)
     }
 
+    clearArr() {
+        for (const path of this.arr) {
+            path.remove()
+        }
+    }
+
     print(text?: string) {
         if (text)
             console.log(`${text}, ${this.name}: ${this.arr}`)
         else
             console.log(`${this.name}: [${this.arr}]`)
     }
+}
+
+export function removeFromArray(arr: any[], obj: any) {
+    arr.splice(arr.indexOf(obj), 1)
 }
 
 export function determineProb(prob: number){
@@ -72,7 +84,7 @@ export function constrain (n: number, low: number, high: number) {
     return Math.max(Math.min(n, high), low);
 }
 
-export function map(n: number, start1: number, stop1: number, start2: number, stop2: number, withinBounds?: number) {
+export function map(n: number, start1: number, stop1: number, start2: number, stop2: number, withinBounds?: boolean) {
     const newVal = (n - start1) / (stop1 - start1) * (stop2 - start2) + start2;
     if (!withinBounds) {
         return newVal;

@@ -19482,7 +19482,7 @@ class DotManager {
             });
             this.arr.push(shape);
         }
-        (0, _relationship.Relationship).pairShapes(this.arr);
+        (0, _relationship.Relationship).pairShapes(this.arr, this);
     }
     remove(shape) {
         const index = this.arr.indexOf(shape);
@@ -19495,7 +19495,7 @@ class DotManager {
 }
 exports.default = DotManager;
 
-},{"./shapeClasses":"kb5TM","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./Relationship":"9KvTc"}],"kb5TM":[function(require,module,exports) {
+},{"./shapeClasses":"kb5TM","./Relationship":"9KvTc","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kb5TM":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _paper = require("paper");
@@ -19570,7 +19570,6 @@ class GenderShape {
     lineArr = new (0, _helperFunctions.PathArray)("lineArr");
     appendageArr = new (0, _helperFunctions.PathArray)("appendageArr", 0);
     relationship;
-    attrFactor = (0, _helperFunctions.random)(_settings.minAttrFactor, _settings.maxAttrFactor);
     isLoner = Math.random() * 100 <= _settings.lonerChance;
     radius;
     genitalWidth;
@@ -19660,6 +19659,15 @@ class GenderShape {
         this._shape = shape;
         this._shape.name = "currentShape";
         this.shapeArr.push(this._shape);
+    }
+    onReady() {
+        return new Promise((resolve)=>{
+            const checkReady = ()=>{
+                if (this.ready) resolve(this.ready);
+                else setTimeout(checkReady, 100);
+            };
+            checkReady();
+        });
     }
     run() {
         this.ready = this.doneScaling && this.doneGrowing;
@@ -19792,7 +19800,7 @@ class GenderShape {
     applyForce(force, heading = false) {
         const calc = force.divide(this.size);
         if (calc.length > _settings.maxVector) calc.normalize(_settings.maxVector);
-        this.acceleration = this.acceleration.add(force.divide(this.size));
+        this.acceleration = this.acceleration.add(calc);
         if (heading) this.pointTowards(force.angle);
     }
     pointTowards(angle) {
@@ -19801,18 +19809,16 @@ class GenderShape {
         this.shape.rotation += mod;
     }
     seek(target) {
-        if (this.ready) {
-            const desired = target.position.subtract(this.position);
-            const d = desired.length;
-            if (d < this.radius * 2) {
-                const m = (0, _helperFunctions.map)(d, 0, this.radius * 2, 0, _settings.maxVector);
-                desired.normalize(m);
-            } else desired.normalize(_settings.maxVector);
-            if (!target.outOfBounds()) {
-                const steer = desired.subtract(this.velocity);
-                this.applyForce(steer);
-                this.pointTowards(desired.angle);
-            }
+        const desired = target.position.subtract(this.position);
+        const d = desired.length;
+        if (d < this.size) {
+            const m = (0, _helperFunctions.map)(d, 0, this.size, 0, (0, _settings.maxVector));
+            desired.normalize(m);
+        } else desired.normalize((0, _settings.maxVector));
+        if (!target.outOfBounds()) {
+            const steer = desired.subtract(this.velocity);
+            this.applyForce(steer);
+            this.pointTowards(desired.angle);
         }
     }
     updatePosition() {
@@ -19878,6 +19884,7 @@ exports.default = ColorManager;
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "PathArray", ()=>PathArray);
+parcelHelpers.export(exports, "removeFromArray", ()=>removeFromArray);
 parcelHelpers.export(exports, "determineProb", ()=>determineProb);
 parcelHelpers.export(exports, "random", ()=>random);
 parcelHelpers.export(exports, "randomFromArr", ()=>randomFromArr);
@@ -19907,10 +19914,16 @@ class PathArray {
         if (len > this.cleanDist) for(let i = 0; i < len - this.cleanDist; i++)this.arr[i].remove();
         this.arr = this.arr.slice(len - this.cleanDist);
     }
+    clearArr() {
+        for (const path of this.arr)path.remove();
+    }
     print(text) {
         if (text) console.log(`${text}, ${this.name}: ${this.arr}`);
         else console.log(`${this.name}: [${this.arr}]`);
     }
+}
+function removeFromArray(arr, obj) {
+    arr.splice(arr.indexOf(obj), 1);
 }
 function determineProb(prob) {
     return Math.random() * 100 <= prob;
@@ -19970,17 +19983,16 @@ parcelHelpers.export(exports, "maxShadowBlur", ()=>maxShadowBlur);
 parcelHelpers.export(exports, "minGray", ()=>minGray);
 parcelHelpers.export(exports, "minThickness", ()=>minThickness);
 parcelHelpers.export(exports, "maxThickness", ()=>maxThickness);
-parcelHelpers.export(exports, "midGray", ()=>midGray);
 parcelHelpers.export(exports, "relationshipTypes", ()=>relationshipTypes);
+parcelHelpers.export(exports, "seekInterval", ()=>seekInterval);
 parcelHelpers.export(exports, "maxPartners", ()=>maxPartners);
-parcelHelpers.export(exports, "chainThickness", ()=>chainThickness);
 parcelHelpers.export(exports, "stealChance", ()=>stealChance);
+parcelHelpers.export(exports, "attractionThreshold", ()=>attractionThreshold);
+parcelHelpers.export(exports, "chainMoveDiv", ()=>chainMoveDiv);
+parcelHelpers.export(exports, "minChainThickness", ()=>minChainThickness);
+parcelHelpers.export(exports, "maxChainThickness", ()=>maxChainThickness);
 parcelHelpers.export(exports, "minChainLength", ()=>minChainLength);
 parcelHelpers.export(exports, "maxChainLength", ()=>maxChainLength);
-parcelHelpers.export(exports, "chainMoveDiv", ()=>chainMoveDiv);
-parcelHelpers.export(exports, "minAttrFactor", ()=>minAttrFactor);
-parcelHelpers.export(exports, "maxAttrFactor", ()=>maxAttrFactor);
-parcelHelpers.export(exports, "attractionThreshold", ()=>attractionThreshold);
 const sexes = [
     {
         name: "male",
@@ -20016,25 +20028,26 @@ const maxShadowBlur = 50;
 const minGray = 0.32;
 const minThickness = 1;
 const maxThickness = 12;
-const midGray = (1 - minGray) / 2;
 const relationshipTypes = [
     "seek",
     "chain"
 ];
+const seekInterval = 1000;
 const maxPartners = 6;
-const chainThickness = 5;
-const stealChance = 2;
+const stealChance = 0.5;
+const attractionThreshold = 0.15;
+const chainMoveDiv = 4;
+const minChainThickness = 3;
+const maxChainThickness = 6;
 const minChainLength = 50;
 const maxChainLength = 300;
-const chainMoveDiv = 4;
-const minAttrFactor = 0;
-const maxAttrFactor = 0.5;
-const attractionThreshold = 0.15;
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9KvTc":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "Relationship", ()=>Relationship);
+parcelHelpers.export(exports, "SeekRelationship", ()=>SeekRelationship);
+parcelHelpers.export(exports, "ChainRelationship", ()=>ChainRelationship);
 var _paper = require("paper");
 var _paperDefault = parcelHelpers.interopDefault(_paper);
 var _helperFunctions = require("./HelperFunctions");
@@ -20043,69 +20056,65 @@ var _settings = require("../Settings");
 class Relationship {
     partners;
     maxPartners = Math.floor((0, _helperFunctions.random)(2, _settings.maxPartners + 1));
-    attractor;
-    chainWeb;
     color;
     dotManager;
-    relationshipType = (0, _helperFunctions.randomFromArr)(_settings.relationshipTypes);
-    constructor(partners, color){
-        this.partners = partners;
-        this.dotManager = this.partners[0].dotManager;
-        this.applyRelationshipAll();
+    readyPartners = new Set();
+    constructor(partners, dotManager, color){
+        this.partners = new Set(partners);
+        this.dotManager = dotManager;
         this.color = color ?? (0, _paperDefault.default).Color.random();
+        this.applyRelationshipAll();
     }
-    static pairShapes(arr) {
+    static pairShapes(arr, dotManager) {
         //see if other is within parameters then see if our color is within other's params
         arr = arr.filter((obj)=>!obj.isLoner);
         for(let i = 0; i < arr.length; i++){
             const a = arr[i];
             for(let j = i + 1; j < arr.length; j++){
                 const b = arr[j];
-                if (a.attractedTo(b) && b.attractedTo(a)) {
-                    if (a.relationship == undefined && b.relationship == undefined) new Relationship([
-                        a,
-                        b
-                    ]);
+                if (this.mutual(a, b)) {
+                    if (a.relationship == undefined && b.relationship == undefined) {
+                        const type = (0, _helperFunctions.randomFromArr)(_settings.relationshipTypes);
+                        if (type == "seek") new SeekRelationship([
+                            a,
+                            b
+                        ], dotManager);
+                    // if (type == "chain")
+                    //     new ChainRelationship([a, b], dotManager)
+                    }
                 }
             }
         }
     }
-    seekPartners() {
-        let arr = this.dotManager.arr;
-        arr = arr.filter((obj)=>!obj.isLoner);
-        arr = arr.filter((obj)=>obj.relationship == undefined);
-        for (const shape of arr)if ((0, _helperFunctions.determineProb)(_settings.stealChance)) this.addPartner(shape);
-    }
-    run() {
-        this.applyRelationshipAll();
-        if (this.relationshipType == "seek") this.seek();
-        else if (this.relationshipType == "chain") {
-            if (this.chainWeb == undefined) this.chainWeb = new (0, _chain.ChainWeb)(this.readyPartnersArr());
-            else if (this.chainWeb.chainArr.length < this.readyPartnersArr().length * (this.readyPartnersArr().length - 1)) this.regenChains();
-            else this.chainWeb.run();
-        }
-        if (this.partners.length < this.maxPartners) this.seekPartners();
-    }
     static mutual(a, b) {
         return a.attractedTo(b) && b.attractedTo(a);
     }
-    static allMutual(arr) {
+    allMutual(partner) {
+        const arr = Array.from(this.partners);
+        arr.push(partner);
         for(let i = 0; i < arr.length; i++){
             const a = arr[i];
             for(let j = i + 1; j < arr.length; j++){
                 const b = arr[j];
-                if (!this.mutual(a, b)) return false;
+                if (!Relationship.mutual(a, b)) return false;
             }
         }
         return true;
     }
-    static getAvgFromArr(objects, attr) {
-        if (objects.length === 0) return 0; // Handle edge case where array is empty
-        const total = objects.reduce((sum, obj)=>sum + obj[attr], 0);
-        return total / objects.length;
+    run() {
+        if (this.readyPartners.size < this.partners.size) for (const partner of this.partners)partner.onReady().then(()=>{
+            this.applyRelationship(partner);
+            this.readyPartners.add(partner);
+        });
+    // if (this.partners.size < this.maxPartners)
+    //     this.seekPartners();
     }
-    applyRelationshipAll() {
-        for (const shape of this.partners)this.applyRelationship(shape);
+    seekPartners() {
+        let arr = this.dotManager.arr;
+        arr = arr.filter((obj)=>!obj.isLoner);
+        setTimeout(()=>{
+            for (const shape of arr)if ((0, _helperFunctions.determineProb)(_settings.stealChance)) this.addPartner(shape);
+        }, _settings.seekInterval);
     }
     applyRelationship(shape) {
         shape.relationship = this;
@@ -20114,36 +20123,85 @@ class Relationship {
             shape.colorManager.relationshipColor = this.color;
         }
     }
+    applyRelationshipAll() {
+        for (const shape of this.partners)this.applyRelationship(shape);
+    }
+    removePartner(partner) {
+        if (this.partners.has(partner)) {
+            this.partners.delete(partner);
+            if (this.readyPartners.has(partner)) this.readyPartners.delete(partner);
+            return true;
+        }
+        return false;
+    }
+    addPartner(partner) {
+        if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
+            if (this.allMutual(partner)) {
+                if (partner.relationship) partner.relationship.removePartner(partner);
+                this.applyRelationship(partner);
+                this.partners.add(partner);
+                if (partner.ready) this.readyPartners.add(partner);
+                return true;
+            }
+        }
+        return false;
+    }
+}
+class SeekRelationship extends Relationship {
+    attractor;
+    constructor(partners, dotManager, color){
+        super(partners, dotManager, color);
+    }
+    run() {
+        super.run();
+        this.seek();
+    }
     determineAttractor() {
-        return (0, _helperFunctions.randomFromArr)(this.readyPartnersArr());
+        return (0, _helperFunctions.randomFromArr)(Array.from(this.readyPartners));
+    }
+    removePartner(partner) {
+        const result = super.removePartner(partner);
+        if (result) {
+            if (this.attractor == partner) this.attractor = this.determineAttractor();
+        }
+        return result;
     }
     seek() {
         if (this.attractor == undefined) this.attractor = this.determineAttractor();
-        else if (this.attractor) {
-            for (const shape of this.readyPartnersArr())if (shape !== this.attractor) shape.seek(this.attractor);
+        else {
+            for (const shape of this.readyPartners)if (shape !== this.attractor) shape.seek(this.attractor);
         }
     }
-    regenChains() {
-        this.chainWeb?.removeAll();
-        this.chainWeb = undefined;
-        this.chainWeb = new (0, _chain.ChainWeb)(this.readyPartnersArr());
+}
+class ChainRelationship extends Relationship {
+    chainWeb;
+    constructor(partners, dotManager, color){
+        super(partners, dotManager, color);
+        this.chainWeb = new (0, _chain.ChainWeb)(this.partners);
     }
-    remove(shape) {
-        const index = this.partners.indexOf(shape);
-        this.partners.splice(index, 1);
+    run() {
+        super.run();
+        this.chainWeb.run();
     }
-    readyPartnersArr() {
-        const arr = this.partners;
-        return arr.filter((obj)=>obj.ready);
+    chain() {
+        if (this.chainWeb == undefined) {
+            this.chainWeb = new (0, _chain.ChainWeb)(this.partners);
+            console.log(this.chainWeb);
+        } else this.chainWeb.run();
+    }
+    removePartner(partner) {
+        const result = super.removePartner(partner);
+        if (result) this.chainWeb.removePartner(partner);
+        return result;
     }
     addPartner(partner) {
-        const arr = this.partners;
-        arr.push(partner);
-        if (Relationship.allMutual(arr) && this.partners.length < this.maxPartners) {
-            partner.relationship?.remove(partner);
-            if (this.chainWeb !== undefined) this.regenChains();
-            this.applyRelationship(partner);
-            this.partners.push(partner);
+        if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
+            if (this.allMutual(partner)) {
+                if (partner.relationship) partner.relationship.removePartner(partner);
+                this.applyRelationship(partner);
+                this.partners.add(partner);
+                if (partner.ready) this.readyPartners.add(partner);
+            }
         }
     }
 }
@@ -20162,53 +20220,57 @@ class Chain {
     b;
     color;
     _chain;
-    chainArr = new (0, _helperFunctions.PathArray)("chainArr");
+    lineArr = new (0, _helperFunctions.PathArray)("lineArr");
     constructor(a, b){
         this.a = a;
         this.b = b;
         this.color = a.relationship?.color ?? a.color;
-        this.genChain();
     }
     run() {
-        this.genChain();
-        this.constrainMovement();
+        if (this.a.ready && this.b.ready) {
+            this.genChain();
+            this.constrainMovement();
+        }
     }
     get chain() {
         return this._chain;
     }
     set chain(chain) {
         this._chain = chain;
-        this.chainArr.push(chain);
+        this.lineArr.push(chain);
     }
     remove() {
-        this.chain.remove();
+        this.chain?.remove();
+        this.lineArr.clearArr();
+    }
+    calcChainThickness() {
+        const distance = this.a.position.subtract(this.b.position).length;
+        let calcThickness = (1 - (distance - (0, _settings.minChainLength)) / ((0, _settings.maxChainLength) - (0, _settings.minChainLength))) * ((0, _settings.maxChainThickness) - (0, _settings.minChainThickness)) + (0, _settings.minChainThickness);
+        calcThickness = (0, _helperFunctions.constrain)(calcThickness, (0, _settings.minChainThickness), (0, _settings.maxChainThickness));
+        console.log(calcThickness);
+        return calcThickness;
     }
     genChain() {
-        if (this.a.ready && this.b.ready) this.chain = new (0, _paperDefault.default).Path.Line({
+        this.chain = new (0, _paperDefault.default).Path.Line({
             from: this.a.position,
             to: this.b.position,
             strokeColor: this.color,
             strokeCap: "round",
-            strokeWidth: _settings.chainThickness
+            strokeWidth: (0, _settings.minChainThickness)
         });
     }
-    getForces() {
-        const aForce = this.a.vector.length * this.a.size;
-        const bForce = this.b.vector.length * this.b.size;
-        if (aForce > bForce) return {
-            strong: this.a,
-            weak: this.b
-        };
-        else return {
-            strong: this.b,
-            weak: this.a
-        };
+    centerOfMass() {
+        const totalMass = this.a.size + this.b.size;
+        const centerX = (this.a.size * this.a.position.x + this.b.size * this.b.position.x) / totalMass;
+        const centerY = (this.a.size * this.a.position.y + this.b.size * this.b.position.y) / totalMass;
+        return new (0, _paperDefault.default).Point(centerX, centerY);
     }
     constrainMovement() {
         if (this.chain.length > _settings.maxChainLength) {
-            const center = this.a.position.subtract(this.b.position).divide(2);
-            const aCenterDiff = center.subtract(this.a.position);
-            const bCenterDiff = center.subtract(this.b.position);
+            const centerMass = this.centerOfMass();
+            // const center = this.a.position.subtract(this.b.position).divide(2)
+            const aCenterDiff = centerMass.subtract(this.a.position);
+            const bCenterDiff = centerMass.subtract(this.b.position);
             this.a.applyForce(aCenterDiff.divide(_settings.chainMoveDiv * this.b.size));
             this.b.applyForce(bCenterDiff.divide(_settings.chainMoveDiv * this.a.size));
         } else if (this.chain.length < _settings.minChainLength) {
@@ -20223,28 +20285,41 @@ class Chain {
     }
 }
 class ChainWeb {
-    arr;
-    chainArr = [];
-    constructor(arr){
-        this.arr = arr;
-        this.initChains();
+    set;
+    chainSet = new Set();
+    constructor(set){
+        this.set = set;
+        this.genChains();
     }
-    removeAll() {
-        for (const chain of this.chainArr)chain.remove();
-    }
-    run() {
-        for (const chain of this.chainArr)chain.run();
-    }
-    initChains() {
-        this.chainArr = [];
-        for(let i = 0; i < this.arr.length; i++){
-            const a = this.arr[i];
-            for(let j = i + 1; j < this.arr.length - 1; j++){
-                const b = this.arr[j];
+    genChains() {
+        this.removeAll();
+        const arr = Array.from(this.set);
+        for(let i = 0; i < arr.length; i++){
+            const a = arr[i];
+            for(let j = i + 1; j < arr.length; j++){
+                const b = arr[j];
                 const chain = new Chain(a, b);
-                this.chainArr.push(chain);
+                this.chainSet.add(chain);
             }
         }
+    }
+    addPartner(partner) {
+        if (!this.set.has(partner)) {
+            this.removeAll();
+            this.set.add(partner);
+            this.genChains();
+        }
+    }
+    removePartner(partner) {
+        this.set.delete(partner);
+        this.removeAll();
+        this.genChains();
+    }
+    removeAll() {
+        for (const chain of this.chainSet)chain.remove();
+    }
+    run() {
+        for (const chain of this.chainSet)chain.run();
     }
 }
 

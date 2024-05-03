@@ -17,7 +17,7 @@ export default class DotManager {
       const shape = new GenderShape({ dotManager: this });
       this.arr.push(shape);
     }
-    Relationship.pairShapes(this.arr)
+    Relationship.pairShapes(this.arr, this)
   }
 
   remove(shape: GenderShape) {
