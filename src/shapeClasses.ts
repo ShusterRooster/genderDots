@@ -1,15 +1,10 @@
 import paper from "paper";
 import ColorManager from "./ColorManager";
-import DotManager from "./DotManager";
-import {
-    constrain,
-    map,
-    PathArray,
-    random
-} from "./HelperFunctions";
-import {ChainRelationship, Relationship, SeekRelationship} from "./Relationship";
+import ShapeManager from "./ShapeManager";
+import {constrain, map, PathArray, random} from "./HelperFunctions";
+import {Relationship} from "./Relationship";
 import * as settings from "../Settings"
-import {maxVector} from "../Settings";
+import {maxVector} from "../Settings"
 
 function Appendage(
     x: number,
@@ -51,8 +46,8 @@ interface Genital {
     path: paper.Path.Line;
 }
 
-export interface genderShape {
-    dotManager?: DotManager;
+export interface babyShape {
+    dotManager?: ShapeManager;
     spawnPoint?: paper.Point;
     radius?: number;
     distance?: number;
@@ -62,9 +57,9 @@ export interface genderShape {
     color?: paper.Color;
 }
 
-export default class GenderShape {
+export class BabyShape {
     spawnPoint: paper.Point;
-    dotManager: DotManager | undefined;
+    shapeManager: ShapeManager | undefined;
     colorManager: ColorManager;
     sex: string;
 
@@ -80,24 +75,18 @@ export default class GenderShape {
     doneScaling = false;
     ready = false;
 
-    acceleration = new paper.Point(0, 0);
-    velocity = new paper.Point(0, 0);
-
     circleArr = new PathArray("circleArr");
     shapeArr = new PathArray("shapeArr");
-    lineArr = new PathArray("lineArr");
     appendageArr = new PathArray("appendageArr", 0);
-
-    relationship: Relationship | SeekRelationship | ChainRelationship | undefined;
-    isLoner = Math.random() * 100 <= settings.lonerChance;
 
     radius: number;
     genitalWidth: number;
     genitalHeight = 0;
     genitalEndHeight: number;
+    isLoner = Math.random() * 100 <= settings.lonerChance;
 
-    constructor(shape: genderShape) {
-        this.dotManager = shape.dotManager;
+    constructor(shape: babyShape) {
+        this.shapeManager = shape.dotManager;
         this.spawnPoint =
             shape.spawnPoint ?? paper.Point.random().multiply(paper.view.viewSize);
 
@@ -107,7 +96,7 @@ export default class GenderShape {
         this.distance =
             shape.distance ?? random(settings.minDistance, settings.maxDistance);
 
-        this.sex = shape.sex ?? GenderShape.determineSex();
+        this.sex = shape.sex ?? BabyShape.determineSex();
 
         this.genitalWidth =
             shape.genitalWidth ??
@@ -125,15 +114,8 @@ export default class GenderShape {
             (settings.maxRadius / settings.genitalDiv) ** 2;
 
         this.colorManager = new ColorManager(this, shape.color);
-    }
 
-    //runs only once to generate the first vector
-    protected generateFirstVector() {
-        const length = random(settings.minVector, settings.maxVector);
-        this.vector = new paper.Point({
-            length: length,
-            angle: this.rotation - 90,
-        });
+        if (this.isLoner) this.colorManager.color = this.colorManager.generateGray()
     }
 
     protected static determineSex() {
@@ -152,20 +134,6 @@ export default class GenderShape {
 
         // If no match is found (shouldn't happen), return the last sex
         return sexes[sexes.length - 1].name;
-    }
-
-    attractedTo(other: GenderShape): boolean {
-        // Absolute difference between the colors
-        const colorDifference = Math.abs(this.gray - other.gray);
-
-        // Objects are attracted if:
-        // 1. Color difference is within the threshold
-        // 2. At least one object is very light or very dark (not in the middle)
-        // 3. They are not exactly the same color
-        return (colorDifference <= settings.attractionThreshold &&
-                (this.gray <= 0.4 || this.gray >= 0.8 ||
-                    other.gray <= 0.4 || other.gray >= 0.8)) &&
-            (this.gray !== other.gray);
     }
 
     calcSize(height = this.genitalHeight) {
@@ -197,35 +165,8 @@ export default class GenderShape {
         return this.calcSize();
     }
 
-    get vector(): paper.Point | undefined {
-        return this._vector;
-    }
-
-    set vector(vector: paper.Point) {
-        const len = constrain(
-            vector.length,
-            settings.minVector,
-            settings.maxVector
-        );
-        this._vector = new paper.Point({length: len, angle: vector.angle});
-
-        // this.drawLineTo(this.position.add(this._vector));
-    }
-
     get color() {
         return this.colorManager.color;
-    }
-
-    get gray() {
-        return this.colorManager.gray;
-    }
-
-    get position() {
-        return this.shape.position;
-    }
-
-    set position(position: paper.Point) {
-        this.shape.position = position;
     }
 
     get shape() {
@@ -251,15 +192,16 @@ export default class GenderShape {
     }
 
     run() {
-        this.ready = this.doneScaling && this.doneGrowing;
+        // this.ready = this.doneScaling && this.doneGrowing;
 
-        if (this.relationship !== undefined) this.relationship.run();
-
-        if (!this.doneScaling) {
+        if (!this.doneScaling)
             this.moveTowardScreen();
-        } else {
+
+        else if (!this.doneGrowing)
             this.growGenitalia();
-            this.updatePosition();
+
+        else if (this.doneScaling && this.doneGrowing) {
+            new GenderShape(this)
         }
     }
 
@@ -270,15 +212,6 @@ export default class GenderShape {
 
         this.circleArr.push(circle);
         return circle;
-    }
-
-    genPart(height: number, yPos: number, name: string): Genital {
-        const xPos = this.spawnPoint.x - this.genitalWidth / 2;
-
-        const part = Appendage(xPos, yPos, this.genitalWidth, height);
-        this.appendageArr.push(part);
-
-        return {name: name, path: part};
     }
 
     genGenitalia(height: number, sex = this.sex, apply = true) {
@@ -315,6 +248,15 @@ export default class GenderShape {
         if (apply) this.applyGenitalia(value!);
     }
 
+    genPart(height: number, yPos: number, name: string): Genital {
+        const xPos = this.spawnPoint.x - this.genitalWidth / 2;
+
+        const part = Appendage(xPos, yPos, this.genitalWidth, height);
+        this.appendageArr.push(part);
+
+        return {name: name, path: part};
+    }
+
     growGenitalia() {
         if (this.genitalHeight < this.genitalEndHeight) {
             this.genGenitalia(this.genitalHeight);
@@ -341,6 +283,7 @@ export default class GenderShape {
             this.shape = penisCircle;
             this.shape.applyMatrix = false;
             this.shape.rotation = this.rotation;
+
         } else {
             let genitalCircle: paper.PathItem;
             const circle = this.genCircle(false);
@@ -366,23 +309,7 @@ export default class GenderShape {
             this.shape = genitalCircle!;
             this.shape.applyMatrix = false;
             this.shape.rotation = this.rotation;
-        }
-    }
-
-    //returns true if out of bounds
-    outOfBounds() {
-        const bounds = paper.view.bounds;
-
-        return (
-            !bounds.contains(this.position) && !this.shape.bounds.intersects(bounds)
-        );
-    }
-
-    checkBorders() {
-        if (this.outOfBounds()) {
-            const center = paper.view.center;
-            const dist = this.position.subtract(center).multiply(-1);
-            this.position = center.add(dist);
+            return;
         }
     }
 
@@ -401,20 +328,127 @@ export default class GenderShape {
             this.shape = circle
         }
     }
+}
+
+
+export class GenderShape {
+    shapeManager?: ShapeManager;
+
+    protected _vector?: paper.Point
+    symbol: paper.SymbolItem
+
+    radius: number
+    rotation: number
+    size: number
+
+    acceleration = new paper.Point(0, 0);
+    velocity = new paper.Point(0, 0);
+
+    relationshipColor?: paper.Color
+    color: paper.Color
+    relationship?: Relationship;
+    isLoner: boolean
+
+    constructor(baby: BabyShape) {
+        this.shapeManager = baby!.shapeManager;
+        this.radius = baby.radius
+        this.rotation = baby.rotation
+        this.size = baby.size
+        this.isLoner = baby.isLoner
+        this.color = baby.color
+
+        this.generateFirstVector()
+
+        const def = new paper.SymbolDefinition(baby.shape)
+        this.symbol = new paper.SymbolItem(def)
+        // console.log(baby.shape.position)
+
+        this.symbol.position = baby.spawnPoint.add(baby.shape.pivot)
+
+        this.shapeManager!.babyToAdult(baby, this)
+    }
+
+    //runs only once to generate the first vector
+    protected generateFirstVector() {
+        const length = random(settings.minVector, settings.maxVector);
+        this.vector = new paper.Point({
+            length: length,
+            angle: this.rotation - 90,
+        });
+    }
+
+    attractedTo(other: GenderShape): boolean {
+        const colorDifference = ColorManager.colorDistance(this.color, other.color)
+        // console.log(colorDifference)
+        return colorDifference <= settings.attractionThreshold;
+    }
+
+    get vector(): paper.Point | undefined {
+        return this._vector;
+    }
+
+    set vector(vector: paper.Point) {
+        const len = constrain(
+            vector.length,
+            settings.minVector,
+            settings.maxVector
+        );
+        this._vector = new paper.Point({length: len, angle: vector.angle});
+
+        // this.drawLineTo(this.position.add(this._vector));
+    }
+
+    applyColor(color: paper.Color) {
+        this.relationshipColor = color
+        this.symbol.strokeColor = color
+        this.symbol.shadowColor = color
+
+        this.symbol.shadowBlur = ColorManager.calcShadow(this.size)
+        this.symbol.shadowOffset = new paper.Point(0, 0)
+    }
+
+    get position() {
+        return this.symbol.position;
+    }
+
+    set position(position: paper.Point) {
+        this.symbol.position = position;
+    }
+
+    run() {
+        // this.ready = this.doneScaling && this.doneGrowing;
+        this.updatePosition();
+        this.checkBorders();
+    }
+
+    //returns true if out of bounds
+    outOfBounds() {
+        const bounds = paper.view.bounds;
+
+        return (
+            !bounds.contains(this.position) && !this.symbol.bounds.intersects(bounds)
+        );
+    }
+
+    checkBorders() {
+        if (this.outOfBounds()) {
+            const center = paper.view.center;
+            const dist = this.position.subtract(center).multiply(-1);
+            this.position = center.add(dist);
+        }
+    }
 
     attractShape(shape: GenderShape) {
-        if (this.ready) {
-            const G = 6.67428 * 10 ** -11;
-            let force = this.position.subtract(shape.position);
-            const distance = constrain(
-                force.length,
-                settings.minVector,
-                settings.maxVector
-            );
-            const strength = (G * this.size * shape.size) / distance ** 2;
+        const G = 6.67428 * 10 ** -11;
+        let force = this.position.subtract(shape.position);
+        const distance = constrain(
+            force.length,
+            settings.minVector,
+            settings.maxVector
+        );
+        const strength = (G * this.size * shape.size) / distance ** 2;
 
-            shape.vector = force.normalize(strength);
-        }
+        shape.vector = force.normalize(strength);
     }
 
     applyForce(force: paper.Point | undefined, heading = false) {
@@ -429,10 +463,10 @@ export default class GenderShape {
     }
 
     pointTowards(angle: number) {
-        angle += 90;
+        // angle = this.rotation;
 
-        const mod = ((angle - this.shape.rotation) / 180) * settings.maxForce;
-        this.shape.rotation += mod;
+        const mod = ((angle - this.symbol.rotation) / 180) * settings.maxForce;
+        this.symbol.rotation += mod;
     }
 
     seek(target: GenderShape) {
@@ -446,7 +480,7 @@ export default class GenderShape {
             desired.normalize(maxVector);
         }
 
-        if(!target.outOfBounds()){
+        if (!target.outOfBounds()) {
             const steer = desired.subtract(this.velocity);
             this.applyForce(steer);
 
@@ -455,8 +489,6 @@ export default class GenderShape {
     }
 
     updatePosition() {
-        if (!this.vector) this.generateFirstVector();
-
         const dragMag = settings.friction * this.velocity.length ** 2;
         const drag = this.velocity
             .multiply(-settings.friction)
@@ -465,9 +497,7 @@ export default class GenderShape {
 
         this.applyForce(this.vector);
         this.velocity = this.velocity.add(this.acceleration);
-        this.shape.position = this.shape.position.add(this.velocity);
+        this.symbol!.position = this.symbol!.position.add(this.velocity);
         this.acceleration = this.acceleration.multiply(0);
-
-        this.checkBorders();
     }
 }

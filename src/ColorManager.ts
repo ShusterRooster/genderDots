@@ -1,6 +1,6 @@
 import paper from "paper";
 import {map, random} from "./HelperFunctions";
-import GenderShape from "./shapeClasses";
+import {BabyShape} from "./shapeClasses";
 import {
     maxDistance,
     maxRadius,
@@ -13,20 +13,18 @@ import {
 } from "../Settings";
 
 export default class ColorManager {
-    relationshipColor: paper.Color | undefined
-    protected _color: paper.Color
-    genderDot: GenderShape
-
+    color: paper.Color
+    babyShape: BabyShape
     strokeWidth = random(minThickness, maxThickness)
 
-    constructor(genderDot: GenderShape, color?: paper.Color) {
-        this.genderDot = genderDot
-        this._color = color ?? this.generateColor(Math.random())
+    constructor(baby: BabyShape, color?: paper.Color) {
+        this.babyShape = baby
+        this.color = color ?? paper.Color.random()
     }
 
-    applyVisibility(item: paper.Path | paper.PathItem = this.genderDot.shape) {
-        item.strokeColor = this.relationshipColor ?? this.color
-        item.shadowColor = this.relationshipColor ?? this.color
+    applyVisibility(item: paper.Path | paper.PathItem = this.babyShape.shape) {
+        item.strokeColor = this.color
+        item.shadowColor = this.color
         item.strokeWidth = this.strokeWidth
 
         item.strokeColor.alpha = this.calcAlpha()
@@ -34,29 +32,30 @@ export default class ColorManager {
         item.shadowOffset = new paper.Point(0, 0)
     }
 
-    generateColor(gray = random(0, minGray)) {
+    static colorDistance(color: paper.Color, other: paper.Color) {
+        const redDist = (color.red - other.red) ** 2
+        const greenDist = (color.green - other.green) ** 2
+        const blueDist = (color.blue - other.blue) ** 2
+
+        return Math.sqrt(redDist + greenDist + blueDist)
+    }
+
+    static calcShadow(size: number) {
+        return map(size, minRadius, maxRadius,
+            minShadowBlur, maxShadowBlur)
+    }
+
+    generateGray(gray = random(0, minGray)) {
         return new paper.Color(gray)
     }
 
     calcShadow() {
-        return map(this.genderDot.calcSize(),
+        return map(this.babyShape.calcSize(),
             minRadius, maxRadius,
             minShadowBlur, maxShadowBlur)
     }
 
-    calcAlpha(distance = this.genderDot.distance) {
+    calcAlpha(distance = this.babyShape.distance) {
         return map(distance, 0, maxDistance, 1, 0)
-    }
-
-    get color() {
-        return this._color
-    }
-
-    get gray() {
-        return this._color.gray
-    }
-
-    set color(color: paper.Color) {
-        this.applyVisibility(this.genderDot.shape)
     }
 }

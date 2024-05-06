@@ -587,27 +587,27 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 var _paper = require("paper");
 var _paperDefault = parcelHelpers.interopDefault(_paper);
-var _dotManager = require("./DotManager");
-var _dotManagerDefault = parcelHelpers.interopDefault(_dotManager);
+var _shapeManager = require("./ShapeManager");
+var _shapeManagerDefault = parcelHelpers.interopDefault(_shapeManager);
 window.onload = function() {
     const canvas = document.getElementById("dotsCanvas");
     (0, _paperDefault.default).setup(canvas);
-    let numWanted = 0;
+    let numWanted = 20;
     const width = (0, _paperDefault.default).view.viewSize.width;
-    if (width >= 900) numWanted = 40;
-    else if (width <= 991) numWanted = 25;
-    else if (width <= 767) numWanted = 20;
-    else if (width <= 479) numWanted = 15;
-    const dotManager = new (0, _dotManagerDefault.default)(numWanted);
+    // if(width >= 900) numWanted = 40
+    // else if (width <= 991) numWanted = 25
+    // else if (width <= 767) numWanted = 20
+    // else if (width <= 479) numWanted = 15
+    const shapeManager = new (0, _shapeManagerDefault.default)(numWanted);
     (0, _paperDefault.default).view.onFrame = function() {
-        dotManager.update();
+        shapeManager.update();
     };
     (0, _paperDefault.default).view.onResize = function() {
         (0, _paperDefault.default).view.viewSize = new (0, _paperDefault.default).Size(window.innerWidth, window.innerHeight);
     };
 };
 
-},{"paper":"agkns","./DotManager":"axmxj","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"agkns":[function(require,module,exports) {
+},{"paper":"agkns","./ShapeManager":"3STyB","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"agkns":[function(require,module,exports) {
 /*!
  * Paper.js v0.12.17 - The Swiss Army Knife of Vector Graphics Scripting.
  * http://paperjs.org/
@@ -19460,427 +19460,239 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"axmxj":[function(require,module,exports) {
+},{}],"3STyB":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-var _shapeClasses = require("./shapeClasses");
-var _shapeClassesDefault = parcelHelpers.interopDefault(_shapeClasses);
 var _relationship = require("./Relationship");
-class DotManager {
-    arr = [];
+var _helperFunctions = require("./HelperFunctions");
+var _settings = require("../Settings");
+var _shapeClasses = require("./shapeClasses");
+class ShapeManager {
+    babies = new Set();
+    adults = new Set();
+    relationships = new Set();
+    openRelationships = new Set();
     numWanted;
     constructor(numWanted){
-        if (numWanted) {
-            this.numWanted = numWanted;
-            this.initDots();
-        }
+        this.relationships = new Set();
+        this.numWanted = numWanted;
+        this.initDots();
     }
     initDots() {
         for(let i = 0; i < this.numWanted; i++){
-            const shape = new (0, _shapeClassesDefault.default)({
+            const shape = new (0, _shapeClasses.BabyShape)({
                 dotManager: this
             });
-            this.arr.push(shape);
+            this.babies.add(shape);
         }
-        (0, _relationship.Relationship).pairShapes(this.arr, this);
+        this.initRelationships();
     }
-    remove(shape) {
-        const index = this.arr.indexOf(shape);
-        this.arr[index].shape.remove();
-        this.arr.splice(index, 1);
+    initRelationships() {
+        const arr = Array.from(this.adults);
+        //see if other is within parameters then see if our color is within other's params
+        arr.filter((obj)=>!obj.isLoner);
+        for(let i = 0; i < arr.length; i++){
+            const a = arr[i];
+            for(let j = i + 1; j < arr.length; j++){
+                const b = arr[j];
+                if ((0, _relationship.Relationship).mutual(a, b)) {
+                    if (a.relationship == undefined && b.relationship == undefined) {
+                        const type = (0, _helperFunctions.randomFromArr)(_settings.relationshipTypes);
+                        if (type == "seek") {
+                            const seekRel = new (0, _relationship.SeekRelationship)([
+                                a,
+                                b
+                            ], this);
+                            this.addRelationship(seekRel);
+                        }
+                    // if (type == "chain")
+                    //     new ChainRelationship([a, b], dotManager)
+                    }
+                }
+            }
+        }
+    }
+    babyToAdult(baby, adult) {
+        this.babies.delete(baby);
+        this.adults.add(adult);
+        baby.shape.remove();
+        if (this.adults.size >= this.numWanted / 4) this.initRelationships();
+    }
+    addRelationship(relationship) {
+        this.relationships.add(relationship);
+        if (relationship.open) this.openRelationships.add(relationship);
+    }
+    removeRelationship(relationship) {
+        this.relationships.delete(relationship);
+        this.openRelationships.delete(relationship);
     }
     update() {
-        for (const dot of this.arr)dot.run();
+        if (this.babies.size > 0) for (const baby of this.babies)baby.run();
+        if (this.adults.size > 0) for (const adult of this.adults)adult.run();
+        if (this.openRelationships.size > 0) for (const r of this.openRelationships)r.lookForLove();
+        if (this.relationships.size > 0) for (const r of this.relationships)r.run();
     }
 }
-exports.default = DotManager;
+exports.default = ShapeManager;
 
-},{"./shapeClasses":"kb5TM","./Relationship":"9KvTc","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kb5TM":[function(require,module,exports) {
+},{"./Relationship":"9KvTc","./HelperFunctions":"iZ5gr","../Settings":"kaKrz","./shapeClasses":"kb5TM","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9KvTc":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "Relationship", ()=>Relationship);
+parcelHelpers.export(exports, "SeekRelationship", ()=>SeekRelationship);
+parcelHelpers.export(exports, "ChainRelationship", ()=>ChainRelationship);
 var _paper = require("paper");
 var _paperDefault = parcelHelpers.interopDefault(_paper);
-var _colorManager = require("./ColorManager");
-var _colorManagerDefault = parcelHelpers.interopDefault(_colorManager);
 var _helperFunctions = require("./HelperFunctions");
+var _chain = require("./Chain");
 var _settings = require("../Settings");
-function Appendage(x, y, width, height) {
-    const leftLine = new (0, _paperDefault.default).Path.Line({
-        name: "leftLine",
-        from: [
-            x,
-            y
-        ],
-        to: [
-            x,
-            y - height
-        ]
-    });
-    const midArc = new (0, _paperDefault.default).Path.Arc({
-        name: "midArc",
-        from: [
-            x,
-            y - height
-        ],
-        through: [
-            x + width / 2,
-            y - height - width / 2
-        ],
-        to: [
-            x + width,
-            y - height
-        ]
-    });
-    const rightLine = new (0, _paperDefault.default).Path.Line({
-        name: "rightLine",
-        from: [
-            x + width,
-            y - height
-        ],
-        to: [
-            x + width,
-            y
-        ]
-    });
-    //joins paths together then returns
-    leftLine.join(midArc);
-    leftLine.join(rightLine);
-    leftLine.closed = true;
-    leftLine.name = "Appendage";
-    return leftLine;
-}
-class GenderShape {
-    spawnPoint;
-    dotManager;
-    colorManager;
-    sex;
-    distance;
-    _vector;
-    _shape;
-    scaleSpeed;
-    growSpeed;
-    rotation = (0, _helperFunctions.random)(0, 360);
-    doneGrowing = false;
-    doneScaling = false;
-    ready = false;
-    acceleration = new (0, _paperDefault.default).Point(0, 0);
-    velocity = new (0, _paperDefault.default).Point(0, 0);
-    circleArr = new (0, _helperFunctions.PathArray)("circleArr");
-    shapeArr = new (0, _helperFunctions.PathArray)("shapeArr");
-    lineArr = new (0, _helperFunctions.PathArray)("lineArr");
-    appendageArr = new (0, _helperFunctions.PathArray)("appendageArr", 0);
-    relationship;
-    isLoner = Math.random() * 100 <= _settings.lonerChance;
-    radius;
-    genitalWidth;
-    genitalHeight = 0;
-    genitalEndHeight;
-    constructor(shape){
-        this.dotManager = shape.dotManager;
-        this.spawnPoint = shape.spawnPoint ?? (0, _paperDefault.default).Point.random().multiply((0, _paperDefault.default).view.viewSize);
-        this.radius = shape.radius ?? (0, _helperFunctions.random)(_settings.minRadius, _settings.maxRadius);
-        this.distance = shape.distance ?? (0, _helperFunctions.random)(_settings.minDistance, _settings.maxDistance);
-        this.sex = shape.sex ?? GenderShape.determineSex();
-        this.genitalWidth = shape.genitalWidth ?? (0, _helperFunctions.random)(this.radius / _settings.genitalDiv, this.radius);
-        this.genitalEndHeight = shape.genitalEndHeight ?? (0, _helperFunctions.random)(this.radius / _settings.genitalDiv, this.radius);
-        this.scaleSpeed = _settings.baseScaleSpeed * (1 - this.distance / _settings.maxDistance);
-        this.growSpeed = this.genitalWidth * this.genitalEndHeight / (_settings.maxRadius / _settings.genitalDiv) ** 2;
-        this.colorManager = new (0, _colorManagerDefault.default)(this, shape.color);
+class Relationship {
+    partners;
+    maxPartners = Math.floor((0, _helperFunctions.random)(2, _settings.maxPartners + 1));
+    color;
+    shapeManager;
+    _open;
+    constructor(partners, shapeManager, color){
+        this.partners = new Set(partners);
+        this.shapeManager = shapeManager;
+        this.color = color ?? (0, _paperDefault.default).Color.random();
+        this._open = this.checkOpen();
+        this.applyRelationshipAll();
     }
-    //runs only once to generate the first vector
-    generateFirstVector() {
-        const length = (0, _helperFunctions.random)(_settings.minVector, _settings.maxVector);
-        this.vector = new (0, _paperDefault.default).Point({
-            length: length,
-            angle: this.rotation - 90
-        });
+    checkOpen() {
+        const cond = this.partners.size < this.maxPartners;
+        //if not changed
+        if (this._open == cond) return this._open;
+        //else
+        this.open = cond;
+        return this._open;
     }
-    static determineSex() {
-        const sexes = _settings.sexes;
-        const random = Math.random() * 100;
-        // Loop through sexes and accumulate probability
-        let accumulatedProbability = 0;
-        for (const sex of sexes){
-            accumulatedProbability += sex.probability;
-            if (random <= accumulatedProbability) return sex.name; // Return the name of the sex
+    set open(open) {
+        if (this._open == open) return;
+        else if (!open) this.shapeManager.openRelationships.delete(this);
+        else this.shapeManager.openRelationships.add(this);
+        this._open = open;
+    }
+    static mutual(a, b) {
+        return a.attractedTo(b) && b.attractedTo(a);
+    }
+    allMutual(partner) {
+        const arr = Array.from(this.partners);
+        arr.push(partner);
+        for(let i = 0; i < arr.length; i++){
+            const a = arr[i];
+            for(let j = i + 1; j < arr.length; j++){
+                const b = arr[j];
+                if (!Relationship.mutual(a, b)) return false;
+            }
         }
-        // If no match is found (shouldn't happen), return the last sex
-        return sexes[sexes.length - 1].name;
-    }
-    attractedTo(other) {
-        // Absolute difference between the colors
-        const colorDifference = Math.abs(this.gray - other.gray);
-        // Objects are attracted if:
-        // 1. Color difference is within the threshold
-        // 2. At least one object is very light or very dark (not in the middle)
-        // 3. They are not exactly the same color
-        return colorDifference <= _settings.attractionThreshold && (this.gray <= 0.4 || this.gray >= 0.8 || other.gray <= 0.4 || other.gray >= 0.8) && this.gray !== other.gray;
-    }
-    calcSize(height = this.genitalHeight) {
-        const size = this.genitalWidth * height * this.radius;
-        return (0, _helperFunctions.map)(size, _settings.minSize, _settings.maxSize, _settings.minRadius, _settings.maxRadius);
-    }
-    calcScaledRadius(distance = this.distance) {
-        return (0, _helperFunctions.map)(distance, _settings.minDistance, _settings.maxDistance, this.radius, _settings.minRadius);
-    }
-    get endSize() {
-        return this.calcSize(this.genitalEndHeight);
-    }
-    get size() {
-        return this.calcSize();
-    }
-    get vector() {
-        return this._vector;
-    }
-    set vector(vector) {
-        const len = (0, _helperFunctions.constrain)(vector.length, _settings.minVector, _settings.maxVector);
-        this._vector = new (0, _paperDefault.default).Point({
-            length: len,
-            angle: vector.angle
-        });
-    // this.drawLineTo(this.position.add(this._vector));
-    }
-    get color() {
-        return this.colorManager.color;
-    }
-    get gray() {
-        return this.colorManager.gray;
-    }
-    get position() {
-        return this.shape.position;
-    }
-    set position(position) {
-        this.shape.position = position;
-    }
-    get shape() {
-        return this._shape;
-    }
-    set shape(shape) {
-        this._shape = shape;
-        this._shape.name = "currentShape";
-        this.shapeArr.push(this._shape);
-    }
-    onReady() {
-        return new Promise((resolve)=>{
-            const checkReady = ()=>{
-                if (this.ready) resolve(this.ready);
-                else setTimeout(checkReady, 100);
-            };
-            checkReady();
-        });
+        return true;
     }
     run() {
-        this.ready = this.doneScaling && this.doneGrowing;
-        if (this.relationship !== undefined) this.relationship.run();
-        if (!this.doneScaling) this.moveTowardScreen();
-        else {
-            this.growGenitalia();
-            this.updatePosition();
+        this.checkOpen();
+    }
+    getFirstInSet(set) {
+        for (let item of set)return item;
+        return undefined;
+    }
+    lookForLove() {
+        for (const shape of this.shapeManager.adults){
+            if (!shape.attractedTo(this.getFirstInSet(this.partners))) continue;
+            if (this.allMutual(shape)) this.addPartner(shape);
         }
     }
-    genCircle(visible = true, point = this.spawnPoint, radius = this.radius) {
-        const circle = new (0, _paperDefault.default).Path.Circle(point, radius);
-        circle.name = "Circle";
-        if (visible) this.colorManager.applyVisibility(circle);
-        this.circleArr.push(circle);
-        return circle;
+    applyRelationship(shape) {
+        shape.relationship = this;
+        shape.relationshipColor = this.color;
+        shape.applyColor(this.color);
     }
-    genPart(height, yPos, name) {
-        const xPos = this.spawnPoint.x - this.genitalWidth / 2;
-        const part = Appendage(xPos, yPos, this.genitalWidth, height);
-        this.appendageArr.push(part);
-        return {
-            name: name,
-            path: part
-        };
+    applyRelationshipAll() {
+        for (const shape of this.partners)this.applyRelationship(shape);
     }
-    genGenitalia(height, sex = this.sex, apply = true) {
-        let value;
-        switch(sex){
-            case "male":
-                {
-                    const yPosPenis = this.spawnPoint.y - this.radius + this.genitalWidth / 2;
-                    value = [
-                        this.genPart(height, yPosPenis, "penis")
-                    ];
-                    break;
-                }
-            case "female":
-                {
-                    const yPosButt = this.spawnPoint.y + this.radius + this.genitalWidth / 2;
-                    value = [
-                        this.genPart(height, yPosButt, "butt")
-                    ];
-                    break;
-                }
-            case "intersex":
-                {
-                    const yPosPenis = this.spawnPoint.y - this.radius + this.genitalWidth / 2;
-                    const yPosButt = this.spawnPoint.y + this.radius + this.genitalWidth / 2;
-                    value = [
-                        this.genPart(height, yPosPenis, "penis"),
-                        this.genPart(height, yPosButt, "butt")
-                    ];
-                    break;
-                }
-        }
-        if (apply) this.applyGenitalia(value);
-    }
-    growGenitalia() {
-        if (this.genitalHeight < this.genitalEndHeight) {
-            this.genGenitalia(this.genitalHeight);
-            this.genitalHeight += this.growSpeed;
-        } else this.doneGrowing = true;
-    }
-    applyGenitalia(genitals) {
-        if (genitals.length > 1) {
-            const penis = genitals[0];
-            const butt = genitals[1];
-            const circle = this.genCircle(false);
-            const buttCircle = circle.subtract(butt.path);
-            const penisCircle = buttCircle.unite(penis.path);
-            buttCircle.name = "buttCircle";
-            penisCircle.name = "penisCircle";
-            this.colorManager.applyVisibility(penisCircle);
-            this.circleArr.push(circle, buttCircle, penisCircle);
-            this.shape = penisCircle;
-            this.shape.applyMatrix = false;
-            this.shape.rotation = this.rotation;
-        } else {
-            let genitalCircle;
-            const circle = this.genCircle(false);
-            const genital = genitals[0];
-            switch(genital.name){
-                case "penis":
-                    genitalCircle = circle.unite(genital.path);
-                    genitalCircle.name = "penisCircle";
-                    break;
-                case "butt":
-                    genitalCircle = circle.subtract(genital.path);
-                    genitalCircle.name = "buttCircle";
-                    break;
+    removePartner(partner) {
+        if (this.partners.has(partner)) {
+            if (this.partners.size - 1 == 0) {
+                this.endRelationship();
+                return;
             }
-            this.colorManager.applyVisibility(genitalCircle);
-            this.circleArr.push(circle, genitalCircle);
-            this.shape = genitalCircle;
-            this.shape.applyMatrix = false;
-            this.shape.rotation = this.rotation;
+            this.partners.delete(partner);
+            return true;
         }
+        return false;
     }
-    //returns true if out of bounds
-    outOfBounds() {
-        const bounds = (0, _paperDefault.default).view.bounds;
-        return !bounds.contains(this.position) && !this.shape.bounds.intersects(bounds);
+    endRelationship() {
+        this.partners.forEach((p)=>{
+            p.relationship = undefined;
+        });
+        this.shapeManager?.removeRelationship(this);
     }
-    checkBorders() {
-        if (this.outOfBounds()) {
-            const center = (0, _paperDefault.default).view.center;
-            const dist = this.position.subtract(center).multiply(-1);
-            this.position = center.add(dist);
+    addPartner(partner) {
+        if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
+            if (this.allMutual(partner)) {
+                if (partner.relationship) partner.relationship.removePartner(partner);
+                this.applyRelationship(partner);
+                this.partners.add(partner);
+                return true;
+            }
         }
+        return false;
     }
-    moveTowardScreen() {
-        if (this.distance <= 0) this.doneScaling = true;
+}
+class SeekRelationship extends Relationship {
+    attractor;
+    constructor(partners, dotManager, color){
+        super(partners, dotManager, color);
+    }
+    run() {
+        super.run();
+        this.seek();
+    }
+    determineAttractor() {
+        return (0, _helperFunctions.randomFromArr)(Array.from(this.partners));
+    }
+    removePartner(partner) {
+        const result = super.removePartner(partner);
+        if (result) {
+            if (this.attractor == partner) this.attractor = this.determineAttractor();
+        }
+        return result;
+    }
+    seek() {
+        if (this.attractor == undefined) this.attractor = this.determineAttractor();
         else {
-            this.distance -= this.scaleSpeed;
-            const circle = this.genCircle(true, this.spawnPoint, this.calcScaledRadius());
-            circle.strokeColor.alpha = this.colorManager.calcAlpha();
-            this.shape = circle;
+            for (const shape of this.partners)if (shape !== this.attractor) shape.seek(this.attractor);
         }
-    }
-    attractShape(shape) {
-        if (this.ready) {
-            const G = 6.67428 * 10 ** -11;
-            let force = this.position.subtract(shape.position);
-            const distance = (0, _helperFunctions.constrain)(force.length, _settings.minVector, _settings.maxVector);
-            const strength = G * this.size * shape.size / distance ** 2;
-            shape.vector = force.normalize(strength);
-        }
-    }
-    applyForce(force, heading = false) {
-        const calc = force.divide(this.size);
-        if (calc.length > _settings.maxVector) calc.normalize(_settings.maxVector);
-        this.acceleration = this.acceleration.add(calc);
-        if (heading) this.pointTowards(force.angle);
-    }
-    pointTowards(angle) {
-        angle += 90;
-        const mod = (angle - this.shape.rotation) / 180 * _settings.maxForce;
-        this.shape.rotation += mod;
-    }
-    seek(target) {
-        const desired = target.position.subtract(this.position);
-        const d = desired.length;
-        if (d < this.size) {
-            const m = (0, _helperFunctions.map)(d, 0, this.size, 0, (0, _settings.maxVector));
-            desired.normalize(m);
-        } else desired.normalize((0, _settings.maxVector));
-        if (!target.outOfBounds()) {
-            const steer = desired.subtract(this.velocity);
-            this.applyForce(steer);
-            this.pointTowards(desired.angle);
-        }
-    }
-    updatePosition() {
-        if (!this.vector) this.generateFirstVector();
-        const dragMag = _settings.friction * this.velocity.length ** 2;
-        const drag = this.velocity.multiply(-_settings.friction).normalize(dragMag);
-        this.applyForce(drag);
-        this.applyForce(this.vector);
-        this.velocity = this.velocity.add(this.acceleration);
-        this.shape.position = this.shape.position.add(this.velocity);
-        this.acceleration = this.acceleration.multiply(0);
-        this.checkBorders();
     }
 }
-exports.default = GenderShape;
-
-},{"paper":"agkns","./ColorManager":"eGYFB","./HelperFunctions":"iZ5gr","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"eGYFB":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-var _paper = require("paper");
-var _paperDefault = parcelHelpers.interopDefault(_paper);
-var _helperFunctions = require("./HelperFunctions");
-var _settings = require("../Settings");
-class ColorManager {
-    relationshipColor;
-    _color;
-    genderDot;
-    strokeWidth = (0, _helperFunctions.random)((0, _settings.minThickness), (0, _settings.maxThickness));
-    constructor(genderDot, color){
-        this.genderDot = genderDot;
-        this._color = color ?? this.generateColor(Math.random());
+class ChainRelationship extends Relationship {
+    chainWeb;
+    constructor(partners, dotManager, color){
+        super(partners, dotManager, color);
+        this.chainWeb = new (0, _chain.ChainWeb)(this.partners);
     }
-    applyVisibility(item = this.genderDot.shape) {
-        item.strokeColor = this.relationshipColor ?? this.color;
-        item.shadowColor = this.relationshipColor ?? this.color;
-        item.strokeWidth = this.strokeWidth;
-        item.strokeColor.alpha = this.calcAlpha();
-        item.shadowBlur = this.calcShadow();
-        item.shadowOffset = new (0, _paperDefault.default).Point(0, 0);
+    run() {
+        super.run();
+        this.chainWeb.run();
     }
-    generateColor(gray = (0, _helperFunctions.random)(0, (0, _settings.minGray))) {
-        return new (0, _paperDefault.default).Color(gray);
+    chain() {
+        if (this.chainWeb == undefined) {
+            this.chainWeb = new (0, _chain.ChainWeb)(this.partners);
+            console.log(this.chainWeb);
+        } else this.chainWeb.run();
     }
-    calcShadow() {
-        return (0, _helperFunctions.map)(this.genderDot.calcSize(), (0, _settings.minRadius), (0, _settings.maxRadius), (0, _settings.minShadowBlur), (0, _settings.maxShadowBlur));
+    removePartner(partner) {
+        const result = super.removePartner(partner);
+        if (result) this.chainWeb.removePartner(partner);
+        return result;
     }
-    calcAlpha(distance = this.genderDot.distance) {
-        return (0, _helperFunctions.map)(distance, 0, (0, _settings.maxDistance), 1, 0);
-    }
-    get color() {
-        return this._color;
-    }
-    get gray() {
-        return this._color.gray;
-    }
-    set color(color) {
-        this.applyVisibility(this.genderDot.shape);
+    addPartner(partner) {
+        const result = super.addPartner(partner);
+        if (result) this.chainWeb.addPartner(partner);
+        return result;
     }
 }
-exports.default = ColorManager;
 
-},{"paper":"agkns","./HelperFunctions":"iZ5gr","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"iZ5gr":[function(require,module,exports) {
+},{"paper":"agkns","./HelperFunctions":"iZ5gr","./Chain":"5mYwe","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"iZ5gr":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "PathArray", ()=>PathArray);
@@ -19958,255 +19770,7 @@ function between(n, min, max) {
     return n >= min && n <= max;
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kaKrz":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "sexes", ()=>sexes);
-parcelHelpers.export(exports, "minRadius", ()=>minRadius);
-parcelHelpers.export(exports, "maxRadius", ()=>maxRadius);
-parcelHelpers.export(exports, "minVector", ()=>minVector);
-parcelHelpers.export(exports, "maxVector", ()=>maxVector);
-parcelHelpers.export(exports, "minDistance", ()=>minDistance);
-parcelHelpers.export(exports, "maxDistance", ()=>maxDistance);
-parcelHelpers.export(exports, "baseScaleSpeed", ()=>baseScaleSpeed);
-parcelHelpers.export(exports, "outerBoundsOffset", ()=>outerBoundsOffset);
-parcelHelpers.export(exports, "minSize", ()=>minSize);
-parcelHelpers.export(exports, "maxSize", ()=>maxSize);
-parcelHelpers.export(exports, "genitalDiv", ()=>genitalDiv);
-parcelHelpers.export(exports, "lonerChance", ()=>lonerChance);
-parcelHelpers.export(exports, "maxForce", ()=>maxForce);
-parcelHelpers.export(exports, "friction", ()=>friction);
-parcelHelpers.export(exports, "normalForce", ()=>normalForce);
-parcelHelpers.export(exports, "frictionMag", ()=>frictionMag);
-parcelHelpers.export(exports, "minShadowBlur", ()=>minShadowBlur);
-parcelHelpers.export(exports, "maxShadowBlur", ()=>maxShadowBlur);
-parcelHelpers.export(exports, "minGray", ()=>minGray);
-parcelHelpers.export(exports, "minThickness", ()=>minThickness);
-parcelHelpers.export(exports, "maxThickness", ()=>maxThickness);
-parcelHelpers.export(exports, "relationshipTypes", ()=>relationshipTypes);
-parcelHelpers.export(exports, "seekInterval", ()=>seekInterval);
-parcelHelpers.export(exports, "maxPartners", ()=>maxPartners);
-parcelHelpers.export(exports, "stealChance", ()=>stealChance);
-parcelHelpers.export(exports, "attractionThreshold", ()=>attractionThreshold);
-parcelHelpers.export(exports, "chainMoveDiv", ()=>chainMoveDiv);
-parcelHelpers.export(exports, "minChainThickness", ()=>minChainThickness);
-parcelHelpers.export(exports, "maxChainThickness", ()=>maxChainThickness);
-parcelHelpers.export(exports, "minChainLength", ()=>minChainLength);
-parcelHelpers.export(exports, "maxChainLength", ()=>maxChainLength);
-const sexes = [
-    {
-        name: "male",
-        probability: 48.7
-    },
-    {
-        name: "female",
-        probability: 47.9
-    },
-    {
-        name: "intersex",
-        probability: 1.7
-    }
-];
-const minRadius = 15;
-const maxRadius = 100;
-const minVector = 2.5;
-const maxVector = 7.5;
-const minDistance = 25;
-const maxDistance = 500;
-const baseScaleSpeed = 7.5;
-const outerBoundsOffset = maxRadius * 4;
-const minSize = minRadius * (minRadius / 5) ** 2;
-const maxSize = maxRadius ** 3;
-const genitalDiv = 5;
-const lonerChance = 15;
-const maxForce = 1;
-const friction = 0.32;
-const normalForce = 1;
-const frictionMag = friction * normalForce;
-const minShadowBlur = 25;
-const maxShadowBlur = 50;
-const minGray = 0.32;
-const minThickness = 1;
-const maxThickness = 12;
-const relationshipTypes = [
-    "seek",
-    "chain"
-];
-const seekInterval = 1000;
-const maxPartners = 6;
-const stealChance = 0.5;
-const attractionThreshold = 0.15;
-const chainMoveDiv = 4;
-const minChainThickness = 3;
-const maxChainThickness = 6;
-const minChainLength = 50;
-const maxChainLength = 300;
-
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"9KvTc":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "Relationship", ()=>Relationship);
-parcelHelpers.export(exports, "SeekRelationship", ()=>SeekRelationship);
-parcelHelpers.export(exports, "ChainRelationship", ()=>ChainRelationship);
-var _paper = require("paper");
-var _paperDefault = parcelHelpers.interopDefault(_paper);
-var _helperFunctions = require("./HelperFunctions");
-var _chain = require("./Chain");
-var _settings = require("../Settings");
-class Relationship {
-    partners;
-    maxPartners = Math.floor((0, _helperFunctions.random)(2, _settings.maxPartners + 1));
-    color;
-    dotManager;
-    readyPartners = new Set();
-    constructor(partners, dotManager, color){
-        this.partners = new Set(partners);
-        this.dotManager = dotManager;
-        this.color = color ?? (0, _paperDefault.default).Color.random();
-        this.applyRelationshipAll();
-    }
-    static pairShapes(arr, dotManager) {
-        //see if other is within parameters then see if our color is within other's params
-        arr = arr.filter((obj)=>!obj.isLoner);
-        for(let i = 0; i < arr.length; i++){
-            const a = arr[i];
-            for(let j = i + 1; j < arr.length; j++){
-                const b = arr[j];
-                if (this.mutual(a, b)) {
-                    if (a.relationship == undefined && b.relationship == undefined) {
-                        const type = (0, _helperFunctions.randomFromArr)(_settings.relationshipTypes);
-                        if (type == "seek") new SeekRelationship([
-                            a,
-                            b
-                        ], dotManager);
-                    // if (type == "chain")
-                    //     new ChainRelationship([a, b], dotManager)
-                    }
-                }
-            }
-        }
-    }
-    static mutual(a, b) {
-        return a.attractedTo(b) && b.attractedTo(a);
-    }
-    allMutual(partner) {
-        const arr = Array.from(this.partners);
-        arr.push(partner);
-        for(let i = 0; i < arr.length; i++){
-            const a = arr[i];
-            for(let j = i + 1; j < arr.length; j++){
-                const b = arr[j];
-                if (!Relationship.mutual(a, b)) return false;
-            }
-        }
-        return true;
-    }
-    run() {
-        if (this.readyPartners.size < this.partners.size) for (const partner of this.partners)partner.onReady().then(()=>{
-            this.applyRelationship(partner);
-            this.readyPartners.add(partner);
-        });
-    // if (this.partners.size < this.maxPartners)
-    //     this.seekPartners();
-    }
-    seekPartners() {
-        let arr = this.dotManager.arr;
-        arr = arr.filter((obj)=>!obj.isLoner);
-        setTimeout(()=>{
-            for (const shape of arr)if ((0, _helperFunctions.determineProb)(_settings.stealChance)) this.addPartner(shape);
-        }, _settings.seekInterval);
-    }
-    applyRelationship(shape) {
-        shape.relationship = this;
-        if (shape.ready) {
-            shape.colorManager.color = this.color;
-            shape.colorManager.relationshipColor = this.color;
-        }
-    }
-    applyRelationshipAll() {
-        for (const shape of this.partners)this.applyRelationship(shape);
-    }
-    removePartner(partner) {
-        if (this.partners.has(partner)) {
-            this.partners.delete(partner);
-            if (this.readyPartners.has(partner)) this.readyPartners.delete(partner);
-            return true;
-        }
-        return false;
-    }
-    addPartner(partner) {
-        if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
-            if (this.allMutual(partner)) {
-                if (partner.relationship) partner.relationship.removePartner(partner);
-                this.applyRelationship(partner);
-                this.partners.add(partner);
-                if (partner.ready) this.readyPartners.add(partner);
-                return true;
-            }
-        }
-        return false;
-    }
-}
-class SeekRelationship extends Relationship {
-    attractor;
-    constructor(partners, dotManager, color){
-        super(partners, dotManager, color);
-    }
-    run() {
-        super.run();
-        this.seek();
-    }
-    determineAttractor() {
-        return (0, _helperFunctions.randomFromArr)(Array.from(this.readyPartners));
-    }
-    removePartner(partner) {
-        const result = super.removePartner(partner);
-        if (result) {
-            if (this.attractor == partner) this.attractor = this.determineAttractor();
-        }
-        return result;
-    }
-    seek() {
-        if (this.attractor == undefined) this.attractor = this.determineAttractor();
-        else {
-            for (const shape of this.readyPartners)if (shape !== this.attractor) shape.seek(this.attractor);
-        }
-    }
-}
-class ChainRelationship extends Relationship {
-    chainWeb;
-    constructor(partners, dotManager, color){
-        super(partners, dotManager, color);
-        this.chainWeb = new (0, _chain.ChainWeb)(this.partners);
-    }
-    run() {
-        super.run();
-        this.chainWeb.run();
-    }
-    chain() {
-        if (this.chainWeb == undefined) {
-            this.chainWeb = new (0, _chain.ChainWeb)(this.partners);
-            console.log(this.chainWeb);
-        } else this.chainWeb.run();
-    }
-    removePartner(partner) {
-        const result = super.removePartner(partner);
-        if (result) this.chainWeb.removePartner(partner);
-        return result;
-    }
-    addPartner(partner) {
-        if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
-            if (this.allMutual(partner)) {
-                if (partner.relationship) partner.relationship.removePartner(partner);
-                this.applyRelationship(partner);
-                this.partners.add(partner);
-                if (partner.ready) this.readyPartners.add(partner);
-            }
-        }
-    }
-}
-
-},{"paper":"agkns","./HelperFunctions":"iZ5gr","./Chain":"5mYwe","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5mYwe":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"5mYwe":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "Chain", ()=>Chain);
@@ -20227,10 +19791,8 @@ class Chain {
         this.color = a.relationship?.color ?? a.color;
     }
     run() {
-        if (this.a.ready && this.b.ready) {
-            this.genChain();
-            this.constrainMovement();
-        }
+        this.genChain();
+        this.constrainMovement();
     }
     get chain() {
         return this._chain;
@@ -20323,6 +19885,499 @@ class ChainWeb {
     }
 }
 
-},{"./HelperFunctions":"iZ5gr","paper":"agkns","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["dZI1r","jeorp"], "jeorp", "parcelRequire4a49")
+},{"./HelperFunctions":"iZ5gr","paper":"agkns","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kaKrz":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "sexes", ()=>sexes);
+parcelHelpers.export(exports, "minRadius", ()=>minRadius);
+parcelHelpers.export(exports, "maxRadius", ()=>maxRadius);
+parcelHelpers.export(exports, "minVector", ()=>minVector);
+parcelHelpers.export(exports, "maxVector", ()=>maxVector);
+parcelHelpers.export(exports, "minDistance", ()=>minDistance);
+parcelHelpers.export(exports, "maxDistance", ()=>maxDistance);
+parcelHelpers.export(exports, "baseScaleSpeed", ()=>baseScaleSpeed);
+parcelHelpers.export(exports, "outerBoundsOffset", ()=>outerBoundsOffset);
+parcelHelpers.export(exports, "minSize", ()=>minSize);
+parcelHelpers.export(exports, "maxSize", ()=>maxSize);
+parcelHelpers.export(exports, "genitalDiv", ()=>genitalDiv);
+parcelHelpers.export(exports, "lonerChance", ()=>lonerChance);
+parcelHelpers.export(exports, "maxForce", ()=>maxForce);
+parcelHelpers.export(exports, "friction", ()=>friction);
+parcelHelpers.export(exports, "normalForce", ()=>normalForce);
+parcelHelpers.export(exports, "frictionMag", ()=>frictionMag);
+parcelHelpers.export(exports, "minShadowBlur", ()=>minShadowBlur);
+parcelHelpers.export(exports, "maxShadowBlur", ()=>maxShadowBlur);
+parcelHelpers.export(exports, "minGray", ()=>minGray);
+parcelHelpers.export(exports, "minThickness", ()=>minThickness);
+parcelHelpers.export(exports, "maxThickness", ()=>maxThickness);
+parcelHelpers.export(exports, "relationshipTypes", ()=>relationshipTypes);
+parcelHelpers.export(exports, "seekInterval", ()=>seekInterval);
+parcelHelpers.export(exports, "maxPartners", ()=>maxPartners);
+parcelHelpers.export(exports, "stealChance", ()=>stealChance);
+parcelHelpers.export(exports, "attractionThreshold", ()=>attractionThreshold);
+parcelHelpers.export(exports, "chainMoveDiv", ()=>chainMoveDiv);
+parcelHelpers.export(exports, "minChainThickness", ()=>minChainThickness);
+parcelHelpers.export(exports, "maxChainThickness", ()=>maxChainThickness);
+parcelHelpers.export(exports, "minChainLength", ()=>minChainLength);
+parcelHelpers.export(exports, "maxChainLength", ()=>maxChainLength);
+const sexes = [
+    {
+        name: "male",
+        probability: 48.7
+    },
+    {
+        name: "female",
+        probability: 47.9
+    },
+    {
+        name: "intersex",
+        probability: 1.7
+    }
+];
+const minRadius = 15;
+const maxRadius = 100;
+const minVector = 2.5;
+const maxVector = 7.5;
+const minDistance = 25;
+const maxDistance = 500;
+const baseScaleSpeed = 7.5;
+const outerBoundsOffset = maxRadius * 4;
+const minSize = minRadius * (minRadius / 5) ** 2;
+const maxSize = maxRadius ** 3;
+const genitalDiv = 5;
+const lonerChance = 15;
+const maxForce = 1;
+const friction = 0.32;
+const normalForce = 1;
+const frictionMag = friction * normalForce;
+const minShadowBlur = 25;
+const maxShadowBlur = 50;
+const minGray = 0.32;
+const minThickness = 1;
+const maxThickness = 12;
+const relationshipTypes = [
+    "seek",
+    "chain"
+];
+const seekInterval = 1000;
+const maxPartners = 6;
+const stealChance = 0.5;
+const attractionThreshold = 0.15;
+const chainMoveDiv = 4;
+const minChainThickness = 3;
+const maxChainThickness = 6;
+const minChainLength = 50;
+const maxChainLength = 300;
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"kb5TM":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "BabyShape", ()=>BabyShape);
+parcelHelpers.export(exports, "GenderShape", ()=>GenderShape);
+var _paper = require("paper");
+var _paperDefault = parcelHelpers.interopDefault(_paper);
+var _colorManager = require("./ColorManager");
+var _colorManagerDefault = parcelHelpers.interopDefault(_colorManager);
+var _helperFunctions = require("./HelperFunctions");
+var _settings = require("../Settings");
+function Appendage(x, y, width, height) {
+    const leftLine = new (0, _paperDefault.default).Path.Line({
+        name: "leftLine",
+        from: [
+            x,
+            y
+        ],
+        to: [
+            x,
+            y - height
+        ]
+    });
+    const midArc = new (0, _paperDefault.default).Path.Arc({
+        name: "midArc",
+        from: [
+            x,
+            y - height
+        ],
+        through: [
+            x + width / 2,
+            y - height - width / 2
+        ],
+        to: [
+            x + width,
+            y - height
+        ]
+    });
+    const rightLine = new (0, _paperDefault.default).Path.Line({
+        name: "rightLine",
+        from: [
+            x + width,
+            y - height
+        ],
+        to: [
+            x + width,
+            y
+        ]
+    });
+    //joins paths together then returns
+    leftLine.join(midArc);
+    leftLine.join(rightLine);
+    leftLine.closed = true;
+    leftLine.name = "Appendage";
+    return leftLine;
+}
+class BabyShape {
+    spawnPoint;
+    shapeManager;
+    colorManager;
+    sex;
+    distance;
+    _vector;
+    _shape;
+    scaleSpeed;
+    growSpeed;
+    rotation = (0, _helperFunctions.random)(0, 360);
+    doneGrowing = false;
+    doneScaling = false;
+    ready = false;
+    circleArr = new (0, _helperFunctions.PathArray)("circleArr");
+    shapeArr = new (0, _helperFunctions.PathArray)("shapeArr");
+    appendageArr = new (0, _helperFunctions.PathArray)("appendageArr", 0);
+    radius;
+    genitalWidth;
+    genitalHeight = 0;
+    genitalEndHeight;
+    isLoner = Math.random() * 100 <= _settings.lonerChance;
+    constructor(shape){
+        this.shapeManager = shape.dotManager;
+        this.spawnPoint = shape.spawnPoint ?? (0, _paperDefault.default).Point.random().multiply((0, _paperDefault.default).view.viewSize);
+        this.radius = shape.radius ?? (0, _helperFunctions.random)(_settings.minRadius, _settings.maxRadius);
+        this.distance = shape.distance ?? (0, _helperFunctions.random)(_settings.minDistance, _settings.maxDistance);
+        this.sex = shape.sex ?? BabyShape.determineSex();
+        this.genitalWidth = shape.genitalWidth ?? (0, _helperFunctions.random)(this.radius / _settings.genitalDiv, this.radius);
+        this.genitalEndHeight = shape.genitalEndHeight ?? (0, _helperFunctions.random)(this.radius / _settings.genitalDiv, this.radius);
+        this.scaleSpeed = _settings.baseScaleSpeed * (1 - this.distance / _settings.maxDistance);
+        this.growSpeed = this.genitalWidth * this.genitalEndHeight / (_settings.maxRadius / _settings.genitalDiv) ** 2;
+        this.colorManager = new (0, _colorManagerDefault.default)(this, shape.color);
+        if (this.isLoner) this.colorManager.color = this.colorManager.generateGray();
+    }
+    static determineSex() {
+        const sexes = _settings.sexes;
+        const random = Math.random() * 100;
+        // Loop through sexes and accumulate probability
+        let accumulatedProbability = 0;
+        for (const sex of sexes){
+            accumulatedProbability += sex.probability;
+            if (random <= accumulatedProbability) return sex.name; // Return the name of the sex
+        }
+        // If no match is found (shouldn't happen), return the last sex
+        return sexes[sexes.length - 1].name;
+    }
+    calcSize(height = this.genitalHeight) {
+        const size = this.genitalWidth * height * this.radius;
+        return (0, _helperFunctions.map)(size, _settings.minSize, _settings.maxSize, _settings.minRadius, _settings.maxRadius);
+    }
+    calcScaledRadius(distance = this.distance) {
+        return (0, _helperFunctions.map)(distance, _settings.minDistance, _settings.maxDistance, this.radius, _settings.minRadius);
+    }
+    get endSize() {
+        return this.calcSize(this.genitalEndHeight);
+    }
+    get size() {
+        return this.calcSize();
+    }
+    get color() {
+        return this.colorManager.color;
+    }
+    get shape() {
+        return this._shape;
+    }
+    set shape(shape) {
+        this._shape = shape;
+        this._shape.name = "currentShape";
+        this.shapeArr.push(this._shape);
+    }
+    onReady() {
+        return new Promise((resolve)=>{
+            const checkReady = ()=>{
+                if (this.ready) resolve(this.ready);
+                else setTimeout(checkReady, 100);
+            };
+            checkReady();
+        });
+    }
+    run() {
+        // this.ready = this.doneScaling && this.doneGrowing;
+        if (!this.doneScaling) this.moveTowardScreen();
+        else if (!this.doneGrowing) this.growGenitalia();
+        else if (this.doneScaling && this.doneGrowing) new GenderShape(this);
+    }
+    genCircle(visible = true, point = this.spawnPoint, radius = this.radius) {
+        const circle = new (0, _paperDefault.default).Path.Circle(point, radius);
+        circle.name = "Circle";
+        if (visible) this.colorManager.applyVisibility(circle);
+        this.circleArr.push(circle);
+        return circle;
+    }
+    genGenitalia(height, sex = this.sex, apply = true) {
+        let value;
+        switch(sex){
+            case "male":
+                {
+                    const yPosPenis = this.spawnPoint.y - this.radius + this.genitalWidth / 2;
+                    value = [
+                        this.genPart(height, yPosPenis, "penis")
+                    ];
+                    break;
+                }
+            case "female":
+                {
+                    const yPosButt = this.spawnPoint.y + this.radius + this.genitalWidth / 2;
+                    value = [
+                        this.genPart(height, yPosButt, "butt")
+                    ];
+                    break;
+                }
+            case "intersex":
+                {
+                    const yPosPenis = this.spawnPoint.y - this.radius + this.genitalWidth / 2;
+                    const yPosButt = this.spawnPoint.y + this.radius + this.genitalWidth / 2;
+                    value = [
+                        this.genPart(height, yPosPenis, "penis"),
+                        this.genPart(height, yPosButt, "butt")
+                    ];
+                    break;
+                }
+        }
+        if (apply) this.applyGenitalia(value);
+    }
+    genPart(height, yPos, name) {
+        const xPos = this.spawnPoint.x - this.genitalWidth / 2;
+        const part = Appendage(xPos, yPos, this.genitalWidth, height);
+        this.appendageArr.push(part);
+        return {
+            name: name,
+            path: part
+        };
+    }
+    growGenitalia() {
+        if (this.genitalHeight < this.genitalEndHeight) {
+            this.genGenitalia(this.genitalHeight);
+            this.genitalHeight += this.growSpeed;
+        } else this.doneGrowing = true;
+    }
+    applyGenitalia(genitals) {
+        if (genitals.length > 1) {
+            const penis = genitals[0];
+            const butt = genitals[1];
+            const circle = this.genCircle(false);
+            const buttCircle = circle.subtract(butt.path);
+            const penisCircle = buttCircle.unite(penis.path);
+            buttCircle.name = "buttCircle";
+            penisCircle.name = "penisCircle";
+            this.colorManager.applyVisibility(penisCircle);
+            this.circleArr.push(circle, buttCircle, penisCircle);
+            this.shape = penisCircle;
+            this.shape.applyMatrix = false;
+            this.shape.rotation = this.rotation;
+        } else {
+            let genitalCircle;
+            const circle = this.genCircle(false);
+            const genital = genitals[0];
+            switch(genital.name){
+                case "penis":
+                    genitalCircle = circle.unite(genital.path);
+                    genitalCircle.name = "penisCircle";
+                    break;
+                case "butt":
+                    genitalCircle = circle.subtract(genital.path);
+                    genitalCircle.name = "buttCircle";
+                    break;
+            }
+            this.colorManager.applyVisibility(genitalCircle);
+            this.circleArr.push(circle, genitalCircle);
+            this.shape = genitalCircle;
+            this.shape.applyMatrix = false;
+            this.shape.rotation = this.rotation;
+            return;
+        }
+    }
+    moveTowardScreen() {
+        if (this.distance <= 0) this.doneScaling = true;
+        else {
+            this.distance -= this.scaleSpeed;
+            const circle = this.genCircle(true, this.spawnPoint, this.calcScaledRadius());
+            circle.strokeColor.alpha = this.colorManager.calcAlpha();
+            this.shape = circle;
+        }
+    }
+}
+class GenderShape {
+    shapeManager;
+    _vector;
+    symbol;
+    radius;
+    rotation;
+    size;
+    acceleration = new (0, _paperDefault.default).Point(0, 0);
+    velocity = new (0, _paperDefault.default).Point(0, 0);
+    relationshipColor;
+    color;
+    relationship;
+    isLoner;
+    constructor(baby){
+        this.shapeManager = baby.shapeManager;
+        this.radius = baby.radius;
+        this.rotation = baby.rotation;
+        this.size = baby.size;
+        this.isLoner = baby.isLoner;
+        this.color = baby.color;
+        this.generateFirstVector();
+        const def = new (0, _paperDefault.default).SymbolDefinition(baby.shape);
+        this.symbol = new (0, _paperDefault.default).SymbolItem(def);
+        // console.log(baby.shape.position)
+        this.symbol.position = baby.spawnPoint.add(baby.shape.pivot);
+        this.shapeManager.babyToAdult(baby, this);
+    }
+    //runs only once to generate the first vector
+    generateFirstVector() {
+        const length = (0, _helperFunctions.random)(_settings.minVector, _settings.maxVector);
+        this.vector = new (0, _paperDefault.default).Point({
+            length: length,
+            angle: this.rotation - 90
+        });
+    }
+    attractedTo(other) {
+        const colorDifference = (0, _colorManagerDefault.default).colorDistance(this.color, other.color);
+        // console.log(colorDifference)
+        return colorDifference <= _settings.attractionThreshold;
+    }
+    get vector() {
+        return this._vector;
+    }
+    set vector(vector) {
+        const len = (0, _helperFunctions.constrain)(vector.length, _settings.minVector, _settings.maxVector);
+        this._vector = new (0, _paperDefault.default).Point({
+            length: len,
+            angle: vector.angle
+        });
+    // this.drawLineTo(this.position.add(this._vector));
+    }
+    applyColor(color) {
+        this.relationshipColor = color;
+        this.symbol.strokeColor = color;
+        this.symbol.shadowColor = color;
+        this.symbol.shadowBlur = (0, _colorManagerDefault.default).calcShadow(this.size);
+        this.symbol.shadowOffset = new (0, _paperDefault.default).Point(0, 0);
+    }
+    get position() {
+        return this.symbol.position;
+    }
+    set position(position) {
+        this.symbol.position = position;
+    }
+    run() {
+        // this.ready = this.doneScaling && this.doneGrowing;
+        this.updatePosition();
+        this.checkBorders();
+    }
+    //returns true if out of bounds
+    outOfBounds() {
+        const bounds = (0, _paperDefault.default).view.bounds;
+        return !bounds.contains(this.position) && !this.symbol.bounds.intersects(bounds);
+    }
+    checkBorders() {
+        if (this.outOfBounds()) {
+            const center = (0, _paperDefault.default).view.center;
+            const dist = this.position.subtract(center).multiply(-1);
+            this.position = center.add(dist);
+        }
+    }
+    attractShape(shape) {
+        const G = 6.67428 * 10 ** -11;
+        let force = this.position.subtract(shape.position);
+        const distance = (0, _helperFunctions.constrain)(force.length, _settings.minVector, _settings.maxVector);
+        const strength = G * this.size * shape.size / distance ** 2;
+        shape.vector = force.normalize(strength);
+    }
+    applyForce(force, heading = false) {
+        const calc = force.divide(this.size);
+        if (calc.length > _settings.maxVector) calc.normalize(_settings.maxVector);
+        this.acceleration = this.acceleration.add(calc);
+        if (heading) this.pointTowards(force.angle);
+    }
+    pointTowards(angle) {
+        // angle = this.rotation;
+        const mod = (angle - this.symbol.rotation) / 180 * _settings.maxForce;
+        this.symbol.rotation += mod;
+    }
+    seek(target) {
+        const desired = target.position.subtract(this.position);
+        const d = desired.length;
+        if (d < this.size) {
+            const m = (0, _helperFunctions.map)(d, 0, this.size, 0, (0, _settings.maxVector));
+            desired.normalize(m);
+        } else desired.normalize((0, _settings.maxVector));
+        if (!target.outOfBounds()) {
+            const steer = desired.subtract(this.velocity);
+            this.applyForce(steer);
+            this.pointTowards(desired.angle);
+        }
+    }
+    updatePosition() {
+        const dragMag = _settings.friction * this.velocity.length ** 2;
+        const drag = this.velocity.multiply(-_settings.friction).normalize(dragMag);
+        this.applyForce(drag);
+        this.applyForce(this.vector);
+        this.velocity = this.velocity.add(this.acceleration);
+        this.symbol.position = this.symbol.position.add(this.velocity);
+        this.acceleration = this.acceleration.multiply(0);
+    }
+}
+
+},{"paper":"agkns","./ColorManager":"eGYFB","./HelperFunctions":"iZ5gr","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"eGYFB":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _paper = require("paper");
+var _paperDefault = parcelHelpers.interopDefault(_paper);
+var _helperFunctions = require("./HelperFunctions");
+var _settings = require("../Settings");
+class ColorManager {
+    color;
+    babyShape;
+    strokeWidth = (0, _helperFunctions.random)((0, _settings.minThickness), (0, _settings.maxThickness));
+    constructor(baby, color){
+        this.babyShape = baby;
+        this.color = color ?? (0, _paperDefault.default).Color.random();
+    }
+    applyVisibility(item = this.babyShape.shape) {
+        item.strokeColor = this.color;
+        item.shadowColor = this.color;
+        item.strokeWidth = this.strokeWidth;
+        item.strokeColor.alpha = this.calcAlpha();
+        item.shadowBlur = this.calcShadow();
+        item.shadowOffset = new (0, _paperDefault.default).Point(0, 0);
+    }
+    static colorDistance(color, other) {
+        const redDist = (color.red - other.red) ** 2;
+        const greenDist = (color.green - other.green) ** 2;
+        const blueDist = (color.blue - other.blue) ** 2;
+        return Math.sqrt(redDist + greenDist + blueDist);
+    }
+    static calcShadow(size) {
+        return (0, _helperFunctions.map)(size, (0, _settings.minRadius), (0, _settings.maxRadius), (0, _settings.minShadowBlur), (0, _settings.maxShadowBlur));
+    }
+    generateGray(gray = (0, _helperFunctions.random)(0, (0, _settings.minGray))) {
+        return new (0, _paperDefault.default).Color(gray);
+    }
+    calcShadow() {
+        return (0, _helperFunctions.map)(this.babyShape.calcSize(), (0, _settings.minRadius), (0, _settings.maxRadius), (0, _settings.minShadowBlur), (0, _settings.maxShadowBlur));
+    }
+    calcAlpha(distance = this.babyShape.distance) {
+        return (0, _helperFunctions.map)(distance, 0, (0, _settings.maxDistance), 1, 0);
+    }
+}
+exports.default = ColorManager;
+
+},{"paper":"agkns","./HelperFunctions":"iZ5gr","../Settings":"kaKrz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["dZI1r","jeorp"], "jeorp", "parcelRequire4a49")
 
 //# sourceMappingURL=index.b7a05eb9.js.map

@@ -1,5 +1,3 @@
-import GenderShape from "./shapeClasses";
-
 export interface Probability {
     name: string,
     probability: number

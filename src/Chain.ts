@@ -1,8 +1,8 @@
-import GenderShape from "./shapeClasses";
-import {constrain, map, PathArray, removeFromArray} from "./HelperFunctions";
+import {GenderShape} from "./shapeClasses";
+import {constrain, PathArray} from "./HelperFunctions";
 import paper from "paper";
 import * as settings from "../Settings"
-import {maxChainLength, maxChainThickness, minChainLength, minChainThickness} from "../Settings";
+import {maxChainLength, maxChainThickness, minChainLength, minChainThickness} from "../Settings"
 
 export class Chain {
     a: GenderShape
@@ -19,10 +19,8 @@ export class Chain {
     }
 
     run() {
-        if (this.a.ready && this.b.ready) {
-            this.genChain()
-            this.constrainMovement()
-        }
+        this.genChain()
+        this.constrainMovement()
     }
 
     get chain(): paper.Path | undefined {
@@ -38,7 +36,6 @@ export class Chain {
         this.chain?.remove()
         this.lineArr.clearArr()
     }
-
 
     calcChainThickness() {
         const distance = this.a.position.subtract(this.b.position).length
