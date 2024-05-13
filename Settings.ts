@@ -1,4 +1,4 @@
-import {Probability} from "./src/HelperFunctions";
+import {Probability} from "./src/Interfaces";
 
 //Dots
 export const sexes: Probability[] = [
@@ -24,6 +24,8 @@ export const friction: number = 0.32;
 export const normalForce: number = 1;
 export const frictionMag: number = friction * normalForce;
 
+export const borderOffset: number = maxRadius;
+
 //Color
 export const minShadowBlur: number = 25
 export const maxShadowBlur: number = 50
@@ -42,7 +44,7 @@ export const seekInterval: number = 1000
 export const maxPartners: number = 6;
 // export const chainThickness: number = 5;
 export const stealChance: number = 0.5;
-export const attractionThreshold: number = 0.15;
+export const attractionThreshold: number = 100;
 
 //Chain
 export const chainMoveDiv: number = 4

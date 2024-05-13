@@ -1,18 +1,19 @@
-import {GenderShape} from "./shapeClasses";
-import {constrain, PathArray} from "./HelperFunctions";
+import {constrain} from "./HelperFunctions";
 import paper from "paper";
 import * as settings from "../Settings"
 import {maxChainLength, maxChainThickness, minChainLength, minChainThickness} from "../Settings"
+import AdultShape from "./AdultShape";
+import {PathArray} from "./Interfaces";
 
 export class Chain {
-    a: GenderShape
-    b: GenderShape
+    a: AdultShape
+    b: AdultShape
 
     color: paper.Color
     protected _chain: paper.Path | undefined
     lineArr = new PathArray("lineArr")
 
-    constructor(a: GenderShape, b: GenderShape) {
+    constructor(a: AdultShape, b: AdultShape) {
         this.a = a
         this.b = b
         this.color = a.relationship?.color ?? a.color
@@ -90,10 +91,10 @@ export class Chain {
 
 
 export class ChainWeb {
-    set: Set<GenderShape>
+    set: Set<AdultShape>
     chainSet = new Set<Chain>()
 
-    constructor(set: Set<GenderShape>) {
+    constructor(set: Set<AdultShape>) {
         this.set = set
         this.genChains()
     }
@@ -115,7 +116,7 @@ export class ChainWeb {
         }
     }
 
-    addPartner(partner: GenderShape) {
+    addPartner(partner: AdultShape) {
         if (!this.set.has(partner)) {
             this.removeAll()
             this.set.add(partner)
@@ -123,7 +124,7 @@ export class ChainWeb {
         }
     }
 
-    removePartner(partner: GenderShape) {
+    removePartner(partner: AdultShape) {
         this.set.delete(partner)
         this.removeAll()
         this.genChains()

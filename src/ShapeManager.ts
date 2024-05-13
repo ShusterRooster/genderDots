@@ -1,13 +1,16 @@
-import {Relationship, SeekRelationship} from "./Relationship";
+import {ChainRelationship, Relationship, SeekRelationship} from "./Relationship";
 import {randomFromArr} from "./HelperFunctions";
-import * as settings from "../Settings";
-import {BabyShape, GenderShape} from "./shapeClasses";
+import {relationshipTypes} from "../Settings";
+import paper from "paper";
+import BabyShape from "./BabyShape";
+import AdultShape from "./AdultShape";
 
 export default class ShapeManager {
     babies = new Set<BabyShape>()
-    adults = new Set<GenderShape>()
+    adults = new Set<AdultShape>()
     relationships = new Set<Relationship>()
     openRelationships = new Set<Relationship>()
+    relationshipsInit = false
     numWanted: number
 
     constructor(numWanted: number) {
@@ -21,11 +24,13 @@ export default class ShapeManager {
             const shape = new BabyShape({dotManager: this});
             this.babies.add(shape)
         }
-        this.initRelationships()
+
+        console.log(this.babies)
     }
 
     initRelationships() {
         const arr = Array.from(this.adults)
+        console.log("relationships initialized!")
 
         //see if other is within parameters then see if our color is within other's params
         arr.filter((obj) => !obj.isLoner);
@@ -38,36 +43,41 @@ export default class ShapeManager {
 
                 if (Relationship.mutual(a, b)) {
                     if (a.relationship == undefined && b.relationship == undefined) {
-                        const type = randomFromArr(settings.relationshipTypes)
+                        const type = randomFromArr(relationshipTypes)
 
                         if (type == "seek") {
                             const seekRel = new SeekRelationship([a, b], this)
                             this.addRelationship(seekRel)
                         }
 
-                        // if (type == "chain")
-                        //     new ChainRelationship([a, b], dotManager)
+                        if (type == "chain"){
+                            const chainRel = new ChainRelationship([a, b], this)
+                            this.addRelationship(chainRel)
+                        }
                     }
                 }
             }
         }
+
+        console.log(this.relationships)
     }
 
 
-    babyToAdult(baby: BabyShape, adult: GenderShape) {
+    babyToAdult(baby: BabyShape, adult: AdultShape) {
         this.babies.delete(baby)
         this.adults.add(adult)
-
         baby.shape.remove()
 
-        if(this.adults.size >= this.numWanted / 4)
+        if (this.adults.size >= this.numWanted * 0.75 && !this.relationshipsInit) {
             this.initRelationships()
+            this.relationshipsInit = true
+        }
     }
 
     addRelationship(relationship: Relationship) {
         this.relationships.add(relationship)
 
-        if(relationship.open)
+        if (relationship.open)
             this.openRelationships.add(relationship)
     }
 
@@ -76,29 +86,27 @@ export default class ShapeManager {
         this.openRelationships.delete(relationship)
     }
 
-    update() {
-        if(this.babies.size > 0) {
-            for (const baby of this.babies) {
-                baby.run();
-            }
+    update = () => {
+
+        for (const baby of this.babies) {
+            baby.run();
         }
 
-        if(this.adults.size > 0) {
-            for (const adult of this.adults) {
-                adult.run();
-            }
+        for (const adult of this.adults) {
+            adult.run();
         }
 
-        if(this.openRelationships.size > 0) {
-            for (const r of this.openRelationships) {
-                r.lookForLove()
-            }
+        for (const r of this.openRelationships) {
+            r.lookForLove()
         }
 
-        if(this.relationships.size > 0) {
-            for (const r of this.relationships) {
-                r.run()
-            }
+        for (const r of this.relationships) {
+            r.run()
         }
+
+        paper.view.requestUpdate()
+
+
+        requestAnimationFrame(this.update)
     }
 }

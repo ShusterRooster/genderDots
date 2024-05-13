@@ -4,9 +4,16 @@ import ShapeManager from "./ShapeManager";
 window.onload = function () {
     const canvas = document.getElementById('dotsCanvas') as HTMLCanvasElement
     paper.setup(canvas)
+    // paper.view.autoUpdate = false
 
-    let numWanted = 20
+    let numWanted = 40
     const width = paper.view.viewSize.width
+
+    const text = new paper.PointText({
+        point: [50, 50],
+        fillColor: "white",
+        fontSize: 25
+    })
 
     // if(width >= 900) numWanted = 40
     // else if (width <= 991) numWanted = 25
@@ -14,9 +21,10 @@ window.onload = function () {
     // else if (width <= 479) numWanted = 15
 
     const shapeManager = new ShapeManager(numWanted)
+    shapeManager.update()
 
-    paper.view.onFrame = function () {
-        shapeManager.update()
+    paper.view.onFrame = function (event: {count: any, time: any; delta: any; }) {
+        text.content = `FPS: ${event.count / event.time}\ndelta: ${event.delta}`
     }
 
     paper.view.onResize = function () {

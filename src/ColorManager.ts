@@ -1,16 +1,12 @@
 import paper from "paper";
 import {map, random} from "./HelperFunctions";
-import {BabyShape} from "./shapeClasses";
 import {
     maxDistance,
-    maxRadius,
-    maxShadowBlur,
     maxThickness,
     minGray,
-    minRadius,
-    minShadowBlur,
     minThickness
 } from "../Settings";
+import BabyShape from "./BabyShape";
 
 export default class ColorManager {
     color: paper.Color
@@ -28,31 +24,20 @@ export default class ColorManager {
         item.strokeWidth = this.strokeWidth
 
         item.strokeColor.alpha = this.calcAlpha()
-        item.shadowBlur = this.calcShadow()
-        item.shadowOffset = new paper.Point(0, 0)
+        // item.shadowBlur = this.calcShadow()
+        // item.shadowOffset = new paper.Point(0, 0)
     }
 
     static colorDistance(color: paper.Color, other: paper.Color) {
-        const redDist = (color.red - other.red) ** 2
-        const greenDist = (color.green - other.green) ** 2
-        const blueDist = (color.blue - other.blue) ** 2
+        const redDist = (other.red - color.red) ** 2
+        const greenDist = (other.green - color.green) ** 2
+        const blueDist = (other.blue - color.blue) ** 2
 
-        return Math.sqrt(redDist + greenDist + blueDist)
-    }
-
-    static calcShadow(size: number) {
-        return map(size, minRadius, maxRadius,
-            minShadowBlur, maxShadowBlur)
+        return Math.sqrt(redDist + greenDist + blueDist) * 255
     }
 
     generateGray(gray = random(0, minGray)) {
         return new paper.Color(gray)
-    }
-
-    calcShadow() {
-        return map(this.babyShape.calcSize(),
-            minRadius, maxRadius,
-            minShadowBlur, maxShadowBlur)
     }
 
     calcAlpha(distance = this.babyShape.distance) {

@@ -1,21 +1,22 @@
 import paper from "paper";
-import {random, randomFromArr} from "./HelperFunctions";
-import {GenderShape} from "./shapeClasses";
+import {determineProb, random, randomFromArr} from "./HelperFunctions";
 import {ChainWeb} from "./Chain";
 import * as settings from "../Settings";
 import ShapeManager from "./ShapeManager";
+import AdultShape from "./AdultShape";
+import {stealChance} from "../Settings";
 
 export class Relationship {
-    partners: Set<GenderShape>
+    partners: Set<AdultShape>
     maxPartners = Math.floor(random(2, settings.maxPartners + 1));
 
     color: paper.Color;
     shapeManager: ShapeManager
 
-    protected _open: boolean
+    open: boolean
 
     constructor(
-        partners: GenderShape[],
+        partners: AdultShape[],
         shapeManager: ShapeManager,
         color?: paper.Color) {
 
@@ -23,41 +24,28 @@ export class Relationship {
         this.shapeManager = shapeManager
         this.color = color ?? paper.Color.random();
 
-        this._open = this.checkOpen()
+        this.open = this.checkOpen()
 
         this.applyRelationshipAll()
     }
 
     checkOpen() {
-        const cond = this.partners.size < this.maxPartners
+        const open = this.partners.size < this.maxPartners
 
-        //if not changed
-        if(this._open == cond)
-            return this._open
-
-        //else
-        this.open = cond
-        return this._open;
-    }
-
-    set open(open: boolean) {
-        if(this._open == open)
-            return
-
-        else if(!open) //if closed
+        if(!open)
             this.shapeManager.openRelationships.delete(this)
-
-        else //if open and value is new
+        else
             this.shapeManager.openRelationships.add(this)
 
-        this._open = open
+        this.open = open
+        return this.open;
     }
 
-    static mutual(a: GenderShape, b: GenderShape) {
+    static mutual(a: AdultShape, b: AdultShape) {
         return a.attractedTo(b) && b.attractedTo(a);
     }
 
-    allMutual(partner: GenderShape) {
+    allMutual(partner: AdultShape) {
         const arr = Array.from(this.partners)
         arr.push(partner)
 
@@ -75,7 +63,7 @@ export class Relationship {
     }
 
     run() {
-        this.checkOpen()
+        // this.checkOpen()
     }
 
     getFirstInSet(set: Set<any>) {
@@ -86,6 +74,11 @@ export class Relationship {
     }
 
     lookForLove() {
+        if(!determineProb(stealChance))
+            return
+
+        console.log("steal chance!!!")
+
         for (const shape of this.shapeManager.adults) {
 
             if(!shape.attractedTo(this.getFirstInSet(this.partners)))
@@ -96,7 +89,7 @@ export class Relationship {
         }
     }
 
-    applyRelationship(shape: GenderShape) {
+    applyRelationship(shape: AdultShape) {
         shape.relationship = this;
         shape.relationshipColor = this.color
         shape.applyColor(this.color)
@@ -108,7 +101,7 @@ export class Relationship {
         }
     }
 
-    removePartner(partner: GenderShape) {
+    removePartner(partner: AdultShape) {
         if (this.partners.has(partner)) {
 
             if (this.partners.size - 1 == 0) {
@@ -120,6 +113,7 @@ export class Relationship {
 
             return true
         }
+        this.checkOpen()
 
         return false
     }
@@ -133,7 +127,7 @@ export class Relationship {
     }
 
 
-    addPartner(partner: GenderShape) {
+    addPartner(partner: AdultShape) {
         if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
             if (this.allMutual(partner)) {
                 if (partner.relationship)
@@ -141,10 +135,12 @@ export class Relationship {
 
                 this.applyRelationship(partner)
                 this.partners.add(partner)
+                console.log("partner added")
 
                 return true
             }
         }
+        this.checkOpen()
 
         return false
     }
@@ -152,10 +148,10 @@ export class Relationship {
 
 export class SeekRelationship extends Relationship {
 
-    attractor: GenderShape | undefined
+    attractor: AdultShape | undefined
 
     constructor(
-        partners: GenderShape[],
+        partners: AdultShape[],
         dotManager: ShapeManager,
         color?: paper.Color) {
 
@@ -167,11 +163,11 @@ export class SeekRelationship extends Relationship {
         this.seek();
     }
 
-    determineAttractor(): GenderShape {
+    determineAttractor(): AdultShape {
         return randomFromArr(Array.from(this.partners))
     }
 
-    removePartner(partner: GenderShape) {
+    removePartner(partner: AdultShape) {
         const result = super.removePartner(partner);
 
         if (result) {
@@ -201,7 +197,7 @@ export class ChainRelationship extends Relationship {
     chainWeb: ChainWeb
 
     constructor(
-        partners: GenderShape[],
+        partners: AdultShape[],
         dotManager: ShapeManager,
         color?: paper.Color) {
 
@@ -222,7 +218,7 @@ export class ChainRelationship extends Relationship {
             this.chainWeb.run()
     }
 
-    removePartner(partner: GenderShape) {
+    removePartner(partner: AdultShape) {
         const result = super.removePartner(partner)
 
         if (result) {
@@ -232,7 +228,7 @@ export class ChainRelationship extends Relationship {
         return result
     }
 
-    addPartner(partner: GenderShape) {
+    addPartner(partner: AdultShape) {
         const result = super.addPartner(partner)
 
         if (result) {
