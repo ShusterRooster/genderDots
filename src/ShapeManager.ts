@@ -32,9 +32,6 @@ export default class ShapeManager {
         const arr = Array.from(this.adults)
         console.log("relationships initialized!")
 
-        //see if other is within parameters then see if our color is within other's params
-        arr.filter((obj) => !obj.isLoner);
-
         for (let i = 0; i < arr.length; i++) {
             const a = arr[i];
 
@@ -97,7 +94,7 @@ export default class ShapeManager {
         }
 
         for (const r of this.openRelationships) {
-            r.lookForLove()
+            // r.lookForLove()
         }
 
         for (const r of this.relationships) {

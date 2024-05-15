@@ -10,19 +10,16 @@ export class Relationship {
     partners: Set<AdultShape>
     maxPartners = Math.floor(random(2, settings.maxPartners + 1));
 
-    color: paper.Color;
     shapeManager: ShapeManager
 
     open: boolean
 
     constructor(
         partners: AdultShape[],
-        shapeManager: ShapeManager,
-        color?: paper.Color) {
+        shapeManager: ShapeManager) {
 
         this.partners = new Set(partners);
         this.shapeManager = shapeManager
-        this.color = color ?? paper.Color.random();
 
         this.open = this.checkOpen()
 
@@ -81,8 +78,11 @@ export class Relationship {
 
         for (const shape of this.shapeManager.adults) {
 
-            if(!shape.attractedTo(this.getFirstInSet(this.partners)))
+            if(this.partners.has(shape))
                 continue
+
+            // if(!shape.attractedTo(this.getFirstInSet(this.partners)))
+            //     continue
 
             if(this.allMutual(shape))
                 this.addPartner(shape)
@@ -91,8 +91,6 @@ export class Relationship {
 
     applyRelationship(shape: AdultShape) {
         shape.relationship = this;
-        shape.relationshipColor = this.color
-        shape.applyColor(this.color)
     }
 
     applyRelationshipAll() {
@@ -130,8 +128,10 @@ export class Relationship {
     addPartner(partner: AdultShape) {
         if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
             if (this.allMutual(partner)) {
-                if (partner.relationship)
+                if (partner.relationship) {
                     partner.relationship.removePartner(partner)
+                }
+
 
                 this.applyRelationship(partner)
                 this.partners.add(partner)
@@ -152,14 +152,12 @@ export class SeekRelationship extends Relationship {
 
     constructor(
         partners: AdultShape[],
-        dotManager: ShapeManager,
-        color?: paper.Color) {
+        dotManager: ShapeManager) {
 
-        super(partners, dotManager, color)
+        super(partners, dotManager)
     }
 
     run() {
-        super.run()
         this.seek();
     }
 
@@ -198,15 +196,13 @@ export class ChainRelationship extends Relationship {
 
     constructor(
         partners: AdultShape[],
-        dotManager: ShapeManager,
-        color?: paper.Color) {
+        dotManager: ShapeManager) {
 
-        super(partners, dotManager, color)
+        super(partners, dotManager)
         this.chainWeb = new ChainWeb(this.partners)
     }
 
     run() {
-        super.run()
         this.chainWeb.run()
     }
 

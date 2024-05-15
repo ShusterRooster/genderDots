@@ -49,6 +49,7 @@ export const attractionThreshold: number = 100;
 //Chain
 export const chainMoveDiv: number = 4
 export const minChainThickness: number = 3
+export const chainThickness: number = 5
 export const maxChainThickness: number = 6
 export const minChainLength: number = 50
 export const maxChainLength: number = 300

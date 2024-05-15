@@ -1,7 +1,7 @@
 import {constrain} from "./HelperFunctions";
 import paper from "paper";
 import * as settings from "../Settings"
-import {maxChainLength, maxChainThickness, minChainLength, minChainThickness} from "../Settings"
+import {chainThickness, maxChainLength, maxChainThickness, minChainLength, minChainThickness} from "../Settings"
 import AdultShape from "./AdultShape";
 import {PathArray} from "./Interfaces";
 
@@ -9,14 +9,15 @@ export class Chain {
     a: AdultShape
     b: AdultShape
 
-    color: paper.Color
+
+    avgColor: paper.Color
     protected _chain: paper.Path | undefined
     lineArr = new PathArray("lineArr")
 
     constructor(a: AdultShape, b: AdultShape) {
         this.a = a
         this.b = b
-        this.color = a.relationship?.color ?? a.color
+        this.avgColor = this.a.color.add(this.b.color).divide(2)
     }
 
     run() {
@@ -52,9 +53,9 @@ export class Chain {
         this.chain = new paper.Path.Line({
             from: this.a.position,
             to: this.b.position,
-            strokeColor: this.color,
+            strokeColor: this.avgColor,
             strokeCap: 'round',
-            strokeWidth: minChainThickness
+            strokeWidth: chainThickness
         })
     }
 

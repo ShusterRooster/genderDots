@@ -54,8 +54,11 @@ export default class AdultShape {
     }
 
     attractedTo(other: AdultShape): boolean {
+        if(this.isLoner || other.isLoner)
+            return false
+
         const colorDifference = ColorManager.colorDistance(this.color, other.color)
-        return colorDifference <= settings.attractionThreshold;
+        return colorDifference <= settings.attractionThreshold || colorDifference >= settings.attractionThreshold;
     }
 
     get vector(): paper.Point | undefined {
