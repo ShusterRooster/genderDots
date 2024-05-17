@@ -1,74 +1,83 @@
-import GenderShape from "./shapeClasses";
-import {PathArray} from "./HelperFunctions";
+import {constrain} from "./HelperFunctions";
 import paper from "paper";
 import * as settings from "../Settings"
+import {chainThickness, maxChainLength, maxChainThickness, minChainLength, minChainThickness} from "../Settings"
+import AdultShape from "./AdultShape";
+import {PathArray} from "./Interfaces";
 
 export class Chain {
-    a: GenderShape
-    b: GenderShape
+    a: AdultShape
+    b: AdultShape
 
-    color: paper.Color
+
+    avgColor: paper.Color
     protected _chain: paper.Path | undefined
-    chainArr = new PathArray("chainArr")
+    lineArr = new PathArray("lineArr")
 
-    constructor(a: GenderShape, b: GenderShape) {
+    constructor(a: AdultShape, b: AdultShape) {
         this.a = a
         this.b = b
-        this.color = a.relationship?.color ?? a.color
-        this.genChain()
+        this.avgColor = this.a.color.add(this.b.color).divide(2)
     }
 
-    run(){
+    run() {
         this.genChain()
         this.constrainMovement()
     }
 
-    get chain(): paper.Path | undefined{
+    get chain(): paper.Path | undefined {
         return this._chain
     }
 
-    set chain(chain: paper.Path){
+    set chain(chain: paper.Path) {
         this._chain = chain
-        this.chainArr.push(chain)
+        this.lineArr.push(chain)
     }
 
-    remove(){
-        this.chain!.remove()
+    remove() {
+        this.chain?.remove()
+        this.lineArr.clearArr()
     }
 
-    genChain(){
-        if((this.a.ready && this.b.ready)){
-            this.chain = new paper.Path.Line({
-                from: this.a.position,
-                to: this.b.position,
-                strokeColor: this.color,
-                strokeCap: 'round',
-                strokeWidth: settings.chainThickness
-            })
-        }
+    calcChainThickness() {
+        const distance = this.a.position.subtract(this.b.position).length
+
+        let calcThickness = (1 - (distance - minChainLength) / (maxChainLength - minChainLength)) * (maxChainThickness - minChainThickness) + minChainThickness
+        calcThickness = constrain(calcThickness, minChainThickness, maxChainThickness)
+        console.log(calcThickness)
+
+        return calcThickness
     }
 
-    getForces(){
-        const aForce = this.a.vector!.length * this.a.size
-        const bForce = this.b.vector!.length * this.b.size
+    genChain() {
+        this.chain = new paper.Path.Line({
+            from: this.a.position,
+            to: this.b.position,
+            strokeColor: this.avgColor,
+            strokeCap: 'round',
+            strokeWidth: chainThickness
+        })
+    }
 
-        if(aForce > bForce)
-            return {strong: this.a, weak: this.b}
-        else
-            return {strong: this.b, weak: this.a}
+    centerOfMass() {
+        const totalMass = this.a.size + this.b.size
+        const centerX = (this.a.size * this.a.position.x + this.b.size * this.b.position.x) / totalMass
+        const centerY = (this.a.size * this.a.position.y + this.b.size * this.b.position.y) / totalMass
+
+        return new paper.Point(centerX, centerY)
     }
 
     constrainMovement() {
-        if(this.chain!.length > settings.maxChainLength){
-            const center = this.a.position.subtract(this.b.position).divide(2)
-            const aCenterDiff = center.subtract(this.a.position)
-            const bCenterDiff = center.subtract(this.b.position)
+        if (this.chain!.length > settings.maxChainLength) {
+            const centerMass = this.centerOfMass()
+
+            // const center = this.a.position.subtract(this.b.position).divide(2)
+            const aCenterDiff = centerMass.subtract(this.a.position)
+            const bCenterDiff = centerMass.subtract(this.b.position)
 
             this.a.applyForce(aCenterDiff.divide(settings.chainMoveDiv * this.b.size))
             this.b.applyForce(bCenterDiff.divide(settings.chainMoveDiv * this.a.size))
-        }
-
-        else if(this.chain!.length < settings.minChainLength){
+        } else if (this.chain!.length < settings.minChainLength) {
             const linePt = new paper.Point({
                 angle: this.chain!.rotation,
                 length: settings.minChainLength
@@ -83,38 +92,52 @@ export class Chain {
 
 
 export class ChainWeb {
-    arr: GenderShape[]
-    chainArr: Chain[] = []
+    set: Set<AdultShape>
+    chainSet = new Set<Chain>()
 
-    constructor(arr: GenderShape[]) {
-        this.arr = arr
-        this.initChains()
+    constructor(set: Set<AdultShape>) {
+        this.set = set
+        this.genChains()
     }
 
-    removeAll(){
-        for (const chain of this.chainArr) {
+    genChains() {
+        this.removeAll()
+
+        const arr = Array.from(this.set)
+
+        for (let i = 0; i < arr.length; i++) {
+            const a = arr[i];
+
+            for (let j = i + 1; j < arr.length; j++) {
+                const b = arr[j];
+
+                const chain = new Chain(a, b)
+                this.chainSet.add(chain)
+            }
+        }
+    }
+
+    addPartner(partner: AdultShape) {
+        this.removeAll()
+        this.set.add(partner)
+        this.genChains()
+    }
+
+    removePartner(partner: AdultShape) {
+        this.set.delete(partner)
+        this.removeAll()
+        this.genChains()
+    }
+
+    removeAll() {
+        for (const chain of this.chainSet) {
             chain.remove()
         }
     }
 
-    run(){
-        for (const chain of this.chainArr) {
+    run() {
+        for (const chain of this.chainSet) {
             chain.run()
-        }
-    }
-
-    initChains() {
-        this.chainArr = []
-
-        for (let i = 0; i < this.arr.length; i++) {
-            const a = this.arr[i];
-
-            for (let j = i + 1; j < this.arr.length - 1; j++) {
-                const b = this.arr[j];
-
-                const chain = new Chain(a, b)
-                this.chainArr.push(chain)
-            }
         }
     }
 }

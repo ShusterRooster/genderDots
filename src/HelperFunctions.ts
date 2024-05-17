@@ -1,50 +1,9 @@
-export interface Probability {
-    name: string,
-    probability: number
-}
-
-export class PathArray {
-    name: string
-    arr: paper.Path[]
-    cleanDist: number
-
-    constructor(name: string, cleanDist = 1) {
-        this.name = name
-        this.arr = []
-        this.cleanDist = cleanDist
-    }
-
-    push(...args: any[]) {
-        args.forEach((arg) => {
-            this.arr.push(arg)
-        })
-
-        this.scrubArr()
-    }
-
-    //deletes everything but last element in array unless specified otherwise
-    scrubArr() {
-        const len = this.arr.length
-
-        if (len > this.cleanDist) {
-            for (let i = 0; i < len - this.cleanDist; i++) {
-                this.arr[i].remove()
-            }
-        }
-
-        this.arr = this.arr.slice(len - this.cleanDist)
-    }
-
-    print(text?: string) {
-        if (text)
-            console.log(`${text}, ${this.name}: ${this.arr}`)
-        else
-            console.log(`${this.name}: [${this.arr}]`)
-    }
+export function removeFromArray(arr: any[], obj: any) {
+    arr.splice(arr.indexOf(obj), 1)
 }
 
 export function determineProb(prob: number){
-    return (Math.random() * 100) <= prob
+    return (Math.random()) <= prob
 }
 
 export function random(min: number, max: number) {
@@ -72,7 +31,7 @@ export function constrain (n: number, low: number, high: number) {
     return Math.max(Math.min(n, high), low);
 }
 
-export function map(n: number, start1: number, stop1: number, start2: number, stop2: number, withinBounds?: number) {
+export function map(n: number, start1: number, stop1: number, start2: number, stop2: number, withinBounds?: boolean) {
     const newVal = (n - start1) / (stop1 - start1) * (stop2 - start2) + start2;
     if (!withinBounds) {
         return newVal;

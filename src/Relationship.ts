@@ -1,111 +1,96 @@
-import paper from "paper";
-import {
-    determineProb,
-    random,
-    randomFromArr
-} from "./HelperFunctions";
-import GenderShape from "./shapeClasses";
+import {determineProb, random, randomFromArr} from "./HelperFunctions";
 import {ChainWeb} from "./Chain";
 import * as settings from "../Settings";
-import DotManager from "./DotManager";
+import ShapeManager from "./ShapeManager";
+import AdultShape from "./AdultShape";
+import {seekInterval, stealChance} from "../Settings";
 
 export class Relationship {
-    partners: GenderShape[];
+    partners: Set<AdultShape>
     maxPartners = Math.floor(random(2, settings.maxPartners + 1));
 
-    attractor: GenderShape | undefined;
-    chainWeb: ChainWeb | undefined
+    shapeManager: ShapeManager
 
-    color: paper.Color;
-    dotManager: DotManager | undefined
-
-    relationshipType = randomFromArr(settings.relationshipTypes);
+    open: boolean
 
     constructor(
-        partners: GenderShape[],
-        color?: paper.Color) {
+        partners: AdultShape[],
+        shapeManager: ShapeManager) {
 
-        this.partners = partners;
-        this.dotManager = this.partners[0].dotManager
+        this.partners = new Set(partners);
+        this.shapeManager = shapeManager
 
-        this.applyRelationshipAll();
+        this.open = this.checkOpen()
 
-        this.color = color ?? paper.Color.random();
+        this.applyRelationshipAll()
     }
 
-    static pairShapes(arr: GenderShape[]) {
-        //see if other is within parameters then see if our color is within other's params
-        arr = arr.filter((obj) => !obj.isLoner);
+    checkOpen() {
+        const open = this.partners.size < this.maxPartners
 
-        for (let i = 0; i < arr.length; i++) {
-            const a = arr[i];
+        if(!open)
+            this.shapeManager.openRelationships.delete(this)
+        else
+            this.shapeManager.openRelationships.add(this)
 
-            for (let j = i + 1; j < arr.length; j++) {
-                const b = arr[j];
-
-                if (a.attractedTo(b) && b.attractedTo(a)) {
-                    if (a.relationship == undefined && b.relationship == undefined) {
-                        new Relationship([a, b]);
-                    }
-                }
-            }
-        }
+        this.open = open
+        return this.open;
     }
 
-    seekPartners() {
-        let arr = this.dotManager!.arr;
-        arr = arr.filter((obj) => !obj.isLoner);
-        arr = arr.filter((obj) => obj.relationship == undefined);
-
-
-        for (const shape of arr) {
-            if (determineProb(settings.stealChance)) {
-                this.addPartner(shape);
-            }
-        }
-    }
-
-    run() {
-        this.applyRelationshipAll();
-        if (this.relationshipType == "seek") this.seek();
-        else if (this.relationshipType == "chain") {
-            if(this.chainWeb == undefined){
-                this.chainWeb = new ChainWeb(this.readyPartnersArr())
-            }
-            else if (this.chainWeb.chainArr.length < this.readyPartnersArr().length * (this.readyPartnersArr().length - 1)) {
-                this.regenChains()
-            }
-            else {
-                this.chainWeb!.run()
-            }
-        }
-
-        if(this.partners.length < this.maxPartners)
-            this.seekPartners();
-    }
-
-    static mutual(a: GenderShape, b: GenderShape) {
+    static mutual(a: AdultShape, b: AdultShape) {
         return a.attractedTo(b) && b.attractedTo(a);
     }
 
-    static allMutual(arr: GenderShape[]) {
+    allMutual(partner: AdultShape) {
+        const arr = Array.from(this.partners)
+        arr.push(partner)
+
         for (let i = 0; i < arr.length; i++) {
             const a = arr[i];
 
             for (let j = i + 1; j < arr.length; j++) {
                 const b = arr[j];
 
-                if (!this.mutual(a, b)) return false;
+                if (!Relationship.mutual(a, b)) return false;
             }
         }
 
         return true;
     }
 
-    static getAvgFromArr(objects: any[], attr: keyof any) {
-        if (objects.length === 0) return 0; // Handle edge case where array is empty
-        const total = objects.reduce((sum, obj) => sum + obj[attr], 0);
-        return total / objects.length;
+    run() {
+        // this.checkOpen()
+    }
+
+    getFirstInSet(set: Set<any>) {
+        for(let item of set) {
+            return item;
+        }
+        return undefined;
+    }
+
+    lookForLove() {
+        if(!determineProb(stealChance)) {
+            return
+        }
+
+        console.log("steal chance!!!")
+
+        for (const shape of this.shapeManager.adults) {
+
+            if(this.partners.has(shape))
+                continue
+
+            // if(!shape.attractedTo(this.getFirstInSet(this.partners)))
+            //     continue
+
+            if(this.allMutual(shape))
+                this.addPartner(shape)
+        }
+    }
+
+    applyRelationship(shape: AdultShape) {
+        shape.relationship = this;
     }
 
     applyRelationshipAll() {
@@ -114,60 +99,138 @@ export class Relationship {
         }
     }
 
-    applyRelationship(shape: GenderShape) {
-        shape.relationship = this;
-        if (shape.ready) {
-            shape.colorManager.color = this.color;
-            shape.colorManager.relationshipColor = this.color
+    removePartner(partner: AdultShape) {
+        if (this.partners.has(partner)) {
+
+            if (this.partners.size - 1 == 0) {
+                this.endRelationship()
+                return
+            }
+
+            partner.relationship = undefined
+            this.partners.delete(partner)
+
+            return true
         }
+        this.checkOpen()
+
+        return false
     }
 
-    determineAttractor(): GenderShape {
-        return randomFromArr(this.readyPartnersArr())
+    endRelationship() {
+        this.partners.forEach((p) => {
+            p.relationship = undefined
+        })
+
+        this.shapeManager?.removeRelationship(this)
+    }
+
+
+    addPartner(partner: AdultShape) {
+        if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
+            if (this.allMutual(partner)) {
+                if (partner.relationship) {
+                    partner.relationship.removePartner(partner)
+                }
+
+
+                this.applyRelationship(partner)
+                this.partners.add(partner)
+                console.log("partner added")
+
+                return true
+            }
+        }
+        this.checkOpen()
+
+        return false
+    }
+}
+
+export class SeekRelationship extends Relationship {
+
+    attractor: AdultShape | undefined
+
+    constructor(
+        partners: AdultShape[],
+        dotManager: ShapeManager) {
+
+        super(partners, dotManager)
+    }
+
+    run() {
+        this.seek();
+    }
+
+    determineAttractor(): AdultShape {
+        return randomFromArr(Array.from(this.partners))
+    }
+
+    removePartner(partner: AdultShape) {
+        const result = super.removePartner(partner);
+
+        if (result) {
+            this.attractor = this.determineAttractor()
+        }
+
+        return result
     }
 
     seek() {
         if (this.attractor == undefined)
             this.attractor = this.determineAttractor();
 
-        else if (this.attractor) {
-            for (const shape of this.readyPartnersArr()) {
+        else {
+            for (const shape of this.partners) {
                 if (shape !== this.attractor) {
                     shape.seek(this.attractor);
                 }
             }
         }
     }
+}
 
-    regenChains() {
-        this.chainWeb?.removeAll()
-        this.chainWeb = undefined
-        this.chainWeb = new ChainWeb(this.readyPartnersArr())
+export class ChainRelationship extends Relationship {
+
+    chainWeb: ChainWeb
+
+    constructor(
+        partners: AdultShape[],
+        dotManager: ShapeManager) {
+
+        super(partners, dotManager)
+        this.chainWeb = new ChainWeb(this.partners)
     }
 
-    remove(shape: GenderShape) {
-        const index = this.partners.indexOf(shape)
-        this.partners.splice(index, 1)
+    run() {
+        this.chainWeb.run()
     }
 
-    readyPartnersArr() {
-        const arr = this.partners;
-        return arr.filter((obj) => obj.ready);
+    chain() {
+        if (this.chainWeb == undefined) {
+            this.chainWeb = new ChainWeb(this.partners)
+            console.log(this.chainWeb)
+        } else
+            this.chainWeb.run()
     }
 
-    addPartner(partner: GenderShape) {
-        const arr = this.partners;
-        arr.push(partner);
+    removePartner(partner: AdultShape) {
+        const result = super.removePartner(partner)
 
-        if (Relationship.allMutual(arr) &&
-            this.partners.length < this.maxPartners) {
-            partner.relationship?.remove(partner)
-
-            if(this.chainWeb !== undefined)
-                this.regenChains()
-
-            this.applyRelationship(partner)
-            this.partners.push(partner);
+        if (result) {
+            this.chainWeb.removePartner(partner)
         }
+
+        return result
+    }
+
+    addPartner(partner: AdultShape) {
+        const result = super.addPartner(partner)
+
+        if (result) {
+            this.chainWeb.addPartner(partner)
+        }
+
+        return result
     }
 }
