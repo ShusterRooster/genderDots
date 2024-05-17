@@ -30,7 +30,6 @@ export default class ShapeManager {
 
     initRelationships() {
         const arr = Array.from(this.adults)
-        console.log("relationships initialized!")
 
         for (let i = 0; i < arr.length; i++) {
             const a = arr[i];
@@ -47,7 +46,7 @@ export default class ShapeManager {
                             this.addRelationship(seekRel)
                         }
 
-                        if (type == "chain"){
+                        if (type == "chain") {
                             const chainRel = new ChainRelationship([a, b], this)
                             this.addRelationship(chainRel)
                         }
@@ -55,8 +54,6 @@ export default class ShapeManager {
                 }
             }
         }
-
-        console.log(this.relationships)
     }
 
 
@@ -64,11 +61,12 @@ export default class ShapeManager {
         this.babies.delete(baby)
         this.adults.add(adult)
         baby.shape.remove()
+        this.initRelationships()
 
-        if (this.adults.size >= this.numWanted * 0.75 && !this.relationshipsInit) {
-            this.initRelationships()
-            this.relationshipsInit = true
-        }
+        // if (this.adults.size >= this.numWanted * 0.75 && !this.relationshipsInit) {
+        //     this.initRelationships()
+        //     this.relationshipsInit = true
+        // }
     }
 
     addRelationship(relationship: Relationship) {
@@ -93,17 +91,15 @@ export default class ShapeManager {
             adult.run();
         }
 
-        for (const r of this.openRelationships) {
-            // r.lookForLove()
-        }
+        // for (const r of this.openRelationships) {
+        //     r.lookForLove()
+        // }
 
         for (const r of this.relationships) {
             r.run()
         }
 
         paper.view.requestUpdate()
-
-
         requestAnimationFrame(this.update)
     }
 }

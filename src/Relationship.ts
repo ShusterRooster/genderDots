@@ -1,10 +1,9 @@
-import paper from "paper";
 import {determineProb, random, randomFromArr} from "./HelperFunctions";
 import {ChainWeb} from "./Chain";
 import * as settings from "../Settings";
 import ShapeManager from "./ShapeManager";
 import AdultShape from "./AdultShape";
-import {stealChance} from "../Settings";
+import {seekInterval, stealChance} from "../Settings";
 
 export class Relationship {
     partners: Set<AdultShape>
@@ -71,8 +70,9 @@ export class Relationship {
     }
 
     lookForLove() {
-        if(!determineProb(stealChance))
+        if(!determineProb(stealChance)) {
             return
+        }
 
         console.log("steal chance!!!")
 
@@ -107,6 +107,7 @@ export class Relationship {
                 return
             }
 
+            partner.relationship = undefined
             this.partners.delete(partner)
 
             return true
@@ -169,8 +170,7 @@ export class SeekRelationship extends Relationship {
         const result = super.removePartner(partner);
 
         if (result) {
-            if (this.attractor == partner)
-                this.attractor = this.determineAttractor()
+            this.attractor = this.determineAttractor()
         }
 
         return result

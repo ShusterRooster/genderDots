@@ -15,8 +15,7 @@ function Appendage(
     x: number,
     y: number,
     width: number,
-    height: number,
-    simplify: number
+    height: number
 ): paper.Path.Line {
     const leftLine = new paper.Path.Line({
         name: "leftLine",
@@ -43,7 +42,6 @@ function Appendage(
 
     leftLine.closed = true;
     leftLine.name = "Appendage";
-    leftLine.simplify(simplify)
 
     return leftLine;
 }
@@ -60,7 +58,6 @@ export default class BabyShape {
     protected scaleSpeed: number;
     protected growSpeed: number;
     rotation = random(0, 360);
-    simplify = random(0.25, 3.0)
 
     doneGrowing = false;
     doneScaling = false;
@@ -237,7 +234,7 @@ export default class BabyShape {
     genPart(height: number, yPos: number, name: string): Genital {
         const xPos = this.spawnPoint.x - this.genitalWidth / 2;
 
-        const part = Appendage(xPos, yPos, this.genitalWidth, height, this.simplify);
+        const part = Appendage(xPos, yPos, this.genitalWidth, height);
         this.appendageArr.push(part);
 
         return {name: name, path: part};
@@ -287,8 +284,6 @@ export default class BabyShape {
             this.shape.applyMatrix = false;
             this.shape.rotation = this.rotation;
         }
-
-        this.shape.simplify(this.simplify)
     }
 
     moveTowardScreen() {

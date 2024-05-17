@@ -58,7 +58,7 @@ export default class AdultShape {
             return false
 
         const colorDifference = ColorManager.colorDistance(this.color, other.color)
-        return colorDifference <= settings.attractionThreshold || colorDifference >= settings.attractionThreshold;
+        return colorDifference <= settings.attractionThreshold || colorDifference >= settings.attractionThreshold * 2;
     }
 
     get vector(): paper.Point | undefined {
@@ -79,7 +79,6 @@ export default class AdultShape {
     applyColor(color: paper.Color) {
         this.relationshipColor = color
         this.symbol.strokeColor = color
-        this.symbol.shadowColor = color
     }
 
     get position() {

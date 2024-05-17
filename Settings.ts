@@ -14,21 +14,15 @@ export const maxVector: number = 7.5;
 export const minDistance: number = 25;
 export const maxDistance: number = 500;
 export const baseScaleSpeed: number = 7.5;
-export const outerBoundsOffset: number = maxRadius * 4;
 export const minSize: number = minRadius * (minRadius / 5) ** 2;
 export const maxSize: number = maxRadius ** 3;
 export const genitalDiv: number = 5;
-export const lonerChance: number = 15;
+export const lonerChance: number = 0.15;
 export const maxForce: number = 1;
 export const friction: number = 0.32;
-export const normalForce: number = 1;
-export const frictionMag: number = friction * normalForce;
-
 export const borderOffset: number = maxRadius;
 
 //Color
-export const minShadowBlur: number = 25
-export const maxShadowBlur: number = 50
 export const minGray: number = 0.32
 export const minThickness: number = 1
 export const maxThickness: number = 12
@@ -40,9 +34,7 @@ export const relationshipTypes: string[] = [
 ];
 
 export const seekInterval: number = 1000
-
 export const maxPartners: number = 6;
-// export const chainThickness: number = 5;
 export const stealChance: number = 0.5;
 export const attractionThreshold: number = 100;
 

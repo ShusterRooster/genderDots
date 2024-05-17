@@ -22,10 +22,7 @@ export default class ColorManager {
         item.strokeColor = this.color
         item.shadowColor = this.color
         item.strokeWidth = this.strokeWidth
-
         item.strokeColor.alpha = this.calcAlpha()
-        // item.shadowBlur = this.calcShadow()
-        // item.shadowOffset = new paper.Point(0, 0)
     }
 
     static colorDistance(color: paper.Color, other: paper.Color) {

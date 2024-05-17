@@ -118,11 +118,9 @@ export class ChainWeb {
     }
 
     addPartner(partner: AdultShape) {
-        if (!this.set.has(partner)) {
-            this.removeAll()
-            this.set.add(partner)
-            this.genChains()
-        }
+        this.removeAll()
+        this.set.add(partner)
+        this.genChains()
     }
 
     removePartner(partner: AdultShape) {
