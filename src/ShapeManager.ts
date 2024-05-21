@@ -25,7 +25,7 @@ export default class ShapeManager {
             this.babies.add(shape)
         }
 
-        console.log(this.babies)
+        // console.log(this.babies)
     }
 
     initRelationships() {

@@ -5,6 +5,7 @@ import {map, random} from "./HelperFunctions";
 import * as settings from "../Settings";
 import AdultShape from "./AdultShape";
 import {babyShape, PathArray} from "./Interfaces";
+import {genitalDiv, maxDistance, maxRadius, maxSize, minDistance, minSize} from "../Settings";
 
 interface Genital {
     name: string;
@@ -81,24 +82,23 @@ export default class BabyShape {
             shape.radius ?? random(settings.minRadius, settings.maxRadius);
 
         this.distance =
-            shape.distance ?? random(settings.minDistance, settings.maxDistance);
+            shape.distance ?? random(minDistance, maxDistance);
 
         this.sex = shape.sex ?? BabyShape.determineSex();
 
         this.genitalWidth =
             shape.genitalWidth ??
-            random(this.radius / settings.genitalDiv, this.radius);
+            random(this.radius / genitalDiv, this.radius);
 
         this.genitalEndHeight =
             shape.genitalEndHeight ??
-            random(this.radius / settings.genitalDiv, this.radius);
+            random(this.radius / genitalDiv, this.radius);
 
         this.scaleSpeed =
-            settings.baseScaleSpeed * (1 - this.distance / settings.maxDistance);
+            settings.baseScaleSpeed * (1 - this.distance / maxDistance);
 
         this.growSpeed =
-            (this.genitalWidth * this.genitalEndHeight) /
-            (settings.maxRadius / settings.genitalDiv) ** 2;
+            map(this.endSize, minSize, maxSize, settings.minGrowSpeed, settings.maxGrowSpeed)
 
         this.colorManager = new ColorManager(this, shape.color);
 

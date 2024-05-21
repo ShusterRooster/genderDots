@@ -104,16 +104,14 @@ export default class AdultShape {
 
     //returns true if out of bounds
     outOfBounds() {
-        const bounds = paper.view.bounds;
-
         return (
-            !bounds.contains(this.position) && !this.symbol.bounds.intersects(bounds)
+            !paper.view.bounds.contains(this.position) && !this.symbol.bounds.intersects(paper.view.bounds)
         );
     }
 
     checkBorders() {
-        if(!this.nearBorder())
-            return
+        // if(!this.nearBorder())
+        //     return
 
         if (this.outOfBounds()) {
             const center = paper.view.center;
