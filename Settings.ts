@@ -9,14 +9,21 @@ export const sexes: Probability[] = [
 
 export const minRadius: number = 15;
 export const maxRadius: number = 100;
+export const genitalDiv: number = 5;
+
 export const minVector: number = 2.5;
 export const maxVector: number = 7.5;
+
 export const minDistance: number = 25;
-export const maxDistance: number = 500;
+export const maxDistance: number = 350;
 export const baseScaleSpeed: number = 7.5;
+
+export const minGrowSpeed: number = 0.5;
+export const maxGrowSpeed: number = 5;
+
 export const minSize: number = minRadius * (minRadius / 5) ** 2;
 export const maxSize: number = maxRadius ** 3;
-export const genitalDiv: number = 5;
+
 export const lonerChance: number = 0.15;
 export const maxForce: number = 1;
 export const friction: number = 0.32;
