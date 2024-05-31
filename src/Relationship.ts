@@ -4,6 +4,7 @@ import * as settings from "../Settings";
 import ShapeManager from "./ShapeManager";
 import AdultShape from "./AdultShape";
 import {seekInterval, stealChance} from "../Settings";
+import Orbit from "./Orbit";
 
 export class Relationship {
     partners: Set<AdultShape>
@@ -29,9 +30,9 @@ export class Relationship {
         const open = this.partners.size < this.maxPartners
 
         if(!open)
-            this.shapeManager.openRelationships.delete(this)
+            this.shapeManager.removeFromOpen(this)
         else
-            this.shapeManager.openRelationships.add(this)
+            this.shapeManager.openRelationships.push(this)
 
         this.open = open
         return this.open;
@@ -62,35 +63,30 @@ export class Relationship {
         // this.checkOpen()
     }
 
-    getFirstInSet(set: Set<any>) {
-        for(let item of set) {
-            return item;
-        }
-        return undefined;
-    }
-
     lookForLove() {
-        if(!determineProb(stealChance)) {
-            return
-        }
-
-        console.log("steal chance!!!")
 
         for (const shape of this.shapeManager.adults) {
 
             if(this.partners.has(shape))
                 continue
 
-            // if(!shape.attractedTo(this.getFirstInSet(this.partners)))
-            //     continue
-
-            if(this.allMutual(shape))
+            if(shape.inRelationship && this.allMutual(shape)) {
+                if(determineProb(stealChance)) {
+                    console.log("steal chance!!!")
+                    this.addPartner(shape)
+                    return
+                }
+            }
+            else if (this.allMutual(shape)) {
                 this.addPartner(shape)
+                return
+            }
         }
     }
 
     applyRelationship(shape: AdultShape) {
         shape.relationship = this;
+        shape.inRelationship = true
     }
 
     applyRelationshipAll() {
@@ -108,6 +104,7 @@ export class Relationship {
             }
 
             partner.relationship = undefined
+            partner.inRelationship = false
             this.partners.delete(partner)
 
             return true
@@ -120,6 +117,7 @@ export class Relationship {
     endRelationship() {
         this.partners.forEach((p) => {
             p.relationship = undefined
+            p.inRelationship = false
         })
 
         this.shapeManager?.removeRelationship(this)
@@ -129,8 +127,8 @@ export class Relationship {
     addPartner(partner: AdultShape) {
         if (this.partners.size < this.maxPartners && !this.partners.has(partner)) {
             if (this.allMutual(partner)) {
-                if (partner.relationship) {
-                    partner.relationship.removePartner(partner)
+                if (partner.inRelationship) {
+                    partner.relationship!.removePartner(partner)
                 }
 
 
@@ -220,6 +218,9 @@ export class ChainRelationship extends Relationship {
         if (result) {
             this.chainWeb.removePartner(partner)
         }
+        else {
+            this.chainWeb.removeAll()
+        }
 
         return result
     }
@@ -234,3 +235,44 @@ export class ChainRelationship extends Relationship {
         return result
     }
 }
+
+export class OrbitRelationship extends Relationship {
+
+    orbit: Orbit
+
+    constructor(
+        partners: AdultShape[],
+        dotManager: ShapeManager) {
+
+        super(partners, dotManager)
+        this.orbit = new Orbit(this)
+    }
+
+    run() {
+        this.orbit.orbit()
+    }
+
+    removePartner(partner: AdultShape) {
+        const result = super.removePartner(partner)
+
+        if (result) {
+            this.orbit.removePartner(partner)
+        }
+        else {
+            this.orbit.removeAll()
+        }
+
+        return result
+    }
+
+    addPartner(partner: AdultShape) {
+        const result = super.addPartner(partner)
+
+        if (result) {
+            this.orbit.addPartner(partner)
+        }
+
+        return result
+    }
+}
+

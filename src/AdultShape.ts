@@ -23,6 +23,8 @@ export default class AdultShape {
     relationshipColor?: paper.Color
     color: paper.Color
     relationship?: Relationship;
+    inRelationship = false
+    moving = true
     isLoner: boolean
 
     constructor(baby: BabyShape) {
@@ -37,10 +39,7 @@ export default class AdultShape {
 
         const def = new paper.SymbolDefinition(baby.shape)
         this.symbol = new paper.SymbolItem(def)
-        // console.log(baby.shape.position)
-
         this.symbol.position = baby.spawnPoint.add(baby.shape.pivot)
-
         this.shapeManager!.babyToAdult(baby, this)
     }
 
@@ -90,7 +89,9 @@ export default class AdultShape {
     }
 
     run() {
-        this.updatePosition();
+        if(this.moving)
+            this.updatePosition();
+
         this.checkBorders();
     }
 

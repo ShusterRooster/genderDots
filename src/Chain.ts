@@ -35,7 +35,8 @@ export class Chain {
     }
 
     remove() {
-        this.chain?.remove()
+        this._chain?.remove()
+        this._chain = undefined
         this.lineArr.clearArr()
     }
 
@@ -118,14 +119,12 @@ export class ChainWeb {
     }
 
     addPartner(partner: AdultShape) {
-        this.removeAll()
         this.set.add(partner)
         this.genChains()
     }
 
     removePartner(partner: AdultShape) {
         this.set.delete(partner)
-        this.removeAll()
         this.genChains()
     }
 
@@ -133,6 +132,8 @@ export class ChainWeb {
         for (const chain of this.chainSet) {
             chain.remove()
         }
+
+        this.chainSet.clear()
     }
 
     run() {

@@ -37,12 +37,13 @@ export const maxThickness: number = 12
 //Relationship
 export const relationshipTypes: string[] = [
     "seek",
-    "chain"
+    "chain",
+    "orbit"
 ];
 
-export const seekInterval: number = 1000
+export const seekInterval: number = 2500
 export const maxPartners: number = 6;
-export const stealChance: number = 0.5;
+export const stealChance: number = 0.20;
 export const attractionThreshold: number = 100;
 
 //Chain
@@ -52,3 +53,8 @@ export const chainThickness: number = 5
 export const maxChainThickness: number = 6
 export const minChainLength: number = 50
 export const maxChainLength: number = 300
+
+//Orbit
+export const orbitOffset: number = 0
+export const minOrbitSpeed: number = 1
+export const maxOrbitSpeed: number = 8

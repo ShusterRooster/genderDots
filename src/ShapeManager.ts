@@ -1,6 +1,6 @@
-import {ChainRelationship, Relationship, SeekRelationship} from "./Relationship";
+import {ChainRelationship, OrbitRelationship, Relationship, SeekRelationship} from "./Relationship";
 import {randomFromArr} from "./HelperFunctions";
-import {relationshipTypes} from "../Settings";
+import {relationshipTypes, seekInterval} from "../Settings";
 import paper from "paper";
 import BabyShape from "./BabyShape";
 import AdultShape from "./AdultShape";
@@ -9,8 +9,9 @@ export default class ShapeManager {
     babies = new Set<BabyShape>()
     adults = new Set<AdultShape>()
     relationships = new Set<Relationship>()
-    openRelationships = new Set<Relationship>()
+    openRelationships: Relationship[] = []
     relationshipsInit = false
+    intervalActive = false
     numWanted: number
 
     constructor(numWanted: number) {
@@ -46,9 +47,14 @@ export default class ShapeManager {
                             this.addRelationship(seekRel)
                         }
 
-                        if (type == "chain") {
+                        else if (type == "chain") {
                             const chainRel = new ChainRelationship([a, b], this)
                             this.addRelationship(chainRel)
+                        }
+
+                        else if (type == "orbit") {
+                            const orbitRel = new OrbitRelationship([a, b], this)
+                            this.addRelationship(orbitRel)
                         }
                     }
                 }
@@ -69,16 +75,38 @@ export default class ShapeManager {
         // }
     }
 
+    removeFromOpen(relationship: Relationship) {
+        const index = this.openRelationships.indexOf(relationship)
+        this.openRelationships.splice(index, 1)
+    }
+
     addRelationship(relationship: Relationship) {
         this.relationships.add(relationship)
 
         if (relationship.open)
-            this.openRelationships.add(relationship)
+            this.openRelationships.push(relationship)
     }
 
     removeRelationship(relationship: Relationship) {
         this.relationships.delete(relationship)
-        this.openRelationships.delete(relationship)
+        this.removeFromOpen(relationship)
+    }
+
+    runOpenRelationships() {
+        if(this.openRelationships.length == 0)
+            return
+
+        const arr = Array.from(this.openRelationships)
+
+        const rel: Relationship = randomFromArr(arr)
+        console.log(rel)
+        rel.lookForLove()
+
+        console.log("interval called!")
+        this.intervalActive = false
+        // for (const r of this.openRelationships) {
+        //     r.lookForLove()
+        // }
     }
 
     update = () => {
@@ -91,9 +119,12 @@ export default class ShapeManager {
             adult.run();
         }
 
-        // for (const r of this.openRelationships) {
-        //     r.lookForLove()
-        // }
+        if(!this.intervalActive) {
+            this.intervalActive = true
+            setTimeout(() => {
+                this.runOpenRelationships()
+            }, seekInterval)
+        }
 
         for (const r of this.relationships) {
             r.run()
