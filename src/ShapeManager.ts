@@ -1,4 +1,4 @@
-import {ChainRelationship, OrbitRelationship, Relationship, SeekRelationship} from "./Relationship";
+import {ChainRelationship, OrbitRelationship, Relationship, SeekRelationship} from "./relationship/Relationship";
 import {randomFromArr} from "./HelperFunctions";
 import {relationshipTypes, seekInterval} from "../Settings";
 import paper from "paper";
@@ -42,20 +42,20 @@ export default class ShapeManager {
                     if (a.relationship == undefined && b.relationship == undefined) {
                         const type = randomFromArr(relationshipTypes)
 
-                        if (type == "seek") {
-                            const seekRel = new SeekRelationship([a, b], this)
-                            this.addRelationship(seekRel)
-                        }
+                        // if (type == "seek") {
+                        //     const seekRel = new SeekRelationship([a, b], this)
+                        //     this.addRelationship(seekRel)
+                        // }
 
-                        else if (type == "chain") {
+                        if (type == "chain") {
                             const chainRel = new ChainRelationship([a, b], this)
                             this.addRelationship(chainRel)
                         }
 
-                        else if (type == "orbit") {
-                            const orbitRel = new OrbitRelationship([a, b], this)
-                            this.addRelationship(orbitRel)
-                        }
+                        // if (type == "orbit") {
+                        //     const orbitRel = new OrbitRelationship([a, b], this)
+                        //     this.addRelationship(orbitRel)
+                        // }
                     }
                 }
             }

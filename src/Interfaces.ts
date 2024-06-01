@@ -62,3 +62,14 @@ export interface babyShape {
     genitalEndHeight?: number;
     color?: paper.Color;
 }
+
+export interface ChainConnector {
+    start: paper.Point,
+    end: paper.Point,
+    line: paper.Path
+}
+
+export interface ChainPoints {
+    start: paper.Point,
+    end: paper.Point
+}

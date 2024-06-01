@@ -1,17 +1,16 @@
 import paper from "paper";
-import ColorManager from "./ColorManager";
 import ShapeManager from "./ShapeManager";
-import {constrain, map, random} from "./HelperFunctions";
-import {Relationship} from "./Relationship";
+import {colorDistance, constrain, map, random} from "./HelperFunctions";
+import {OrbitRelationship, Relationship, SeekRelationship} from "./relationship/Relationship";
 import * as settings from "../Settings"
-import {borderOffset, maxVector} from "../Settings"
+import {borderOffset, maxVector, oobCheckInterval, seekInterval} from "../Settings"
 import BabyShape from "./BabyShape";
 
 export default class AdultShape {
     shapeManager?: ShapeManager;
 
     protected _vector?: paper.Point
-    symbol: paper.SymbolItem
+    shape: paper.Path
 
     radius: number
     rotation: number
@@ -20,11 +19,16 @@ export default class AdultShape {
     acceleration = new paper.Point(0, 0);
     velocity = new paper.Point(0, 0);
 
-    relationshipColor?: paper.Color
     color: paper.Color
+    strokeWidth: number
+
     relationship?: Relationship;
     inRelationship = false
+
+    teleport = true
     moving = true
+    seeking = false
+
     isLoner: boolean
 
     constructor(baby: BabyShape) {
@@ -34,12 +38,10 @@ export default class AdultShape {
         this.size = baby.size
         this.isLoner = baby.isLoner
         this.color = baby.color
+        this.strokeWidth = baby.strokeWidth
+        this.shape = baby.shape.clone()
 
         this.generateFirstVector()
-
-        const def = new paper.SymbolDefinition(baby.shape)
-        this.symbol = new paper.SymbolItem(def)
-        this.symbol.position = baby.spawnPoint.add(baby.shape.pivot)
         this.shapeManager!.babyToAdult(baby, this)
     }
 
@@ -53,10 +55,10 @@ export default class AdultShape {
     }
 
     attractedTo(other: AdultShape): boolean {
-        if(this.isLoner || other.isLoner)
+        if (this.isLoner || other.isLoner)
             return false
 
-        const colorDifference = ColorManager.colorDistance(this.color, other.color)
+        const colorDifference = colorDistance(this.color, other.color)
         return colorDifference <= settings.attractionThreshold || colorDifference >= settings.attractionThreshold * 2;
     }
 
@@ -71,28 +73,22 @@ export default class AdultShape {
             settings.maxVector
         );
         this._vector = new paper.Point({length: len, angle: vector.angle});
-
-        // this.drawLineTo(this.position.add(this._vector));
-    }
-
-    applyColor(color: paper.Color) {
-        this.relationshipColor = color
-        this.symbol.strokeColor = color
     }
 
     get position() {
-        return this.symbol.position;
+        return this.shape.position;
     }
 
     set position(position: paper.Point) {
-        this.symbol.position = position;
+        this.shape.position = position;
     }
 
     run() {
-        if(this.moving)
+        if (this.moving)
             this.updatePosition();
 
-        this.checkBorders();
+        if(this.teleport)
+            this.checkBorders();
     }
 
     nearBorder() {
@@ -104,21 +100,46 @@ export default class AdultShape {
     }
 
     //returns true if out of bounds
-    outOfBounds() {
+    outOfBounds(path = this.shape) {
         return (
-            !paper.view.bounds.contains(this.position) && !this.symbol.bounds.intersects(paper.view.bounds)
+            !paper.view.bounds.contains(path.position) && !path.bounds.intersects(paper.view.bounds)
         );
     }
 
     checkBorders() {
-        // if(!this.nearBorder())
-        //     return
-
         if (this.outOfBounds()) {
+            if(!this.position) return
+
             const center = paper.view.center;
             const dist = this.position.subtract(center).multiply(-1);
             this.position = center.add(dist);
         }
+    }
+
+    teleportOpposite() {
+        const center = paper.view.center;
+        const boundsPath = new paper.Path.Rectangle({
+            point: [0, 0],
+            size: paper.view.size
+        })
+
+        // const nearest = boundsPath.getNearestPoint(this.position)
+        // const dist = nearest.subtract(center).multiply(-1);
+
+        const dist = this.position.subtract(center).multiply(-1);
+        this.position = center.add(dist);
+
+        this.position = center.add(dist);
+        boundsPath.remove()
+    }
+
+    getOutsidePoint(angle: number) {
+        const pt = new paper.Point({
+            angle: angle,
+            length: this.radius,
+        }).add(this.position)
+
+        return this.shape.getNearestPoint(pt)
     }
 
     attractShape(shape: AdultShape) {
@@ -146,14 +167,14 @@ export default class AdultShape {
     }
 
     pointTowards(angle: number) {
-        // angle = this.rotation;
-
-        const mod = ((angle - this.symbol.rotation) / 180) * settings.maxForce;
-        this.symbol.rotation += mod;
+        const mod = ((angle - this.shape.rotation) / 180) * settings.maxForce;
+        this.shape.rotation += mod;
     }
 
     seek(target: AdultShape) {
-        const desired = target.position.subtract(this.position)
+        if (!this.seeking) return
+
+        let desired = target.position.subtract(this.position)
         const d = desired.length;
 
         if (d < this.size) {
@@ -163,12 +184,9 @@ export default class AdultShape {
             desired.normalize(maxVector);
         }
 
-        if (!target.outOfBounds()) {
-            const steer = desired.subtract(this.velocity);
-            this.applyForce(steer);
-
-            this.pointTowards(desired.angle);
-        }
+        const steer = desired.subtract(this.velocity);
+        this.applyForce(steer);
+        this.pointTowards(desired.angle);
     }
 
     updatePosition() {
@@ -182,7 +200,7 @@ export default class AdultShape {
 
         this.applyForce(this.vector);
         this.velocity = this.velocity.add(this.acceleration);
-        this.symbol!.position = this.symbol!.position.add(this.velocity);
+        this.shape!.position = this.shape!.position.add(this.velocity);
         this.acceleration = this.acceleration.multiply(0);
     }
 }

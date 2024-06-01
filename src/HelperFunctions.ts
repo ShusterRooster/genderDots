@@ -1,3 +1,6 @@
+import paper from "paper";
+import AdultShape from "./AdultShape";
+
 export function removeFromArray(arr: any[], obj: any) {
     arr.splice(arr.indexOf(obj), 1)
 }
@@ -45,4 +48,19 @@ export function map(n: number, start1: number, stop1: number, start2: number, st
 
 export function between(n: number, min: number, max: number) {
     return n >= min && n <= max
+}
+
+export function colorDistance(color: paper.Color, other: paper.Color) {
+    const redDist = (other.red - color.red) ** 2
+    const greenDist = (other.green - color.green) ** 2
+    const blueDist = (other.blue - color.blue) ** 2
+
+    return Math.sqrt(redDist + greenDist + blueDist) * 255
+}
+
+//returns true if out of bounds
+export function outOfBounds(path: paper.Path) {
+    return (
+        !paper.view.bounds.contains(path.position) && !path.bounds.intersects(paper.view.bounds)
+    );
 }

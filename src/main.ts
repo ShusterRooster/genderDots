@@ -12,7 +12,7 @@ window.onload = function () {
     paper.setup(canvas)
     // paper.view.autoUpdate = false
 
-    let numWanted = 40
+    let numWanted = 20
     const width = window.innerWidth
     console.log(width)
 

@@ -24,7 +24,6 @@ export const maxGrowSpeed: number = 5;
 export const minSize: number = minRadius * (minRadius / 5) ** 2;
 export const maxSize: number = maxRadius ** 3;
 
-export const lonerChance: number = 0.15;
 export const maxForce: number = 1;
 export const friction: number = 0.32;
 export const borderOffset: number = maxRadius;
@@ -41,20 +40,26 @@ export const relationshipTypes: string[] = [
     "orbit"
 ];
 
-export const seekInterval: number = 2500
+export const lonerChance: number = 0.15;
+export const seekInterval: number = 500
 export const maxPartners: number = 6;
 export const stealChance: number = 0.20;
 export const attractionThreshold: number = 100;
+export const oobCheckInterval: number = 50;
 
 //Chain
-export const chainMoveDiv: number = 4
+export const chainMoveDiv: number = 3
 export const minChainThickness: number = 3
 export const chainThickness: number = 5
 export const maxChainThickness: number = 6
 export const minChainLength: number = 50
 export const maxChainLength: number = 300
+export const chainGrowSpeed: number = 15
 
 //Orbit
 export const orbitOffset: number = 0
+export const trailSegments: number = 25
+export const trailFadeSpeed: number = 0.08
+export const trailFadeDelay: number = 100
 export const minOrbitSpeed: number = 1
 export const maxOrbitSpeed: number = 8

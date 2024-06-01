@@ -1,11 +1,20 @@
 import paper from "paper";
 import ShapeManager from "./ShapeManager";
-import ColorManager from "./ColorManager";
-import {map, random} from "./HelperFunctions";
+import {determineProb, map, random} from "./HelperFunctions";
 import * as settings from "../Settings";
+import {
+    genitalDiv,
+    lonerChance,
+    maxDistance,
+    maxSize,
+    maxThickness,
+    minDistance,
+    minGray,
+    minSize,
+    minThickness
+} from "../Settings";
 import AdultShape from "./AdultShape";
 import {babyShape, PathArray} from "./Interfaces";
-import {genitalDiv, maxDistance, maxRadius, maxSize, minDistance, minSize} from "../Settings";
 
 interface Genital {
     name: string;
@@ -50,7 +59,7 @@ function Appendage(
 export default class BabyShape {
     spawnPoint: paper.Point;
     shapeManager: ShapeManager | undefined;
-    colorManager: ColorManager;
+    color: paper.Color
     sex: string;
 
     distance: number;
@@ -71,7 +80,8 @@ export default class BabyShape {
     genitalWidth: number;
     genitalHeight = 0;
     genitalEndHeight: number;
-    isLoner = Math.random() * 100 <= settings.lonerChance;
+    isLoner = determineProb(lonerChance)
+    strokeWidth = random(minThickness, maxThickness)
 
     constructor(shape: babyShape) {
         this.shapeManager = shape.dotManager;
@@ -100,9 +110,8 @@ export default class BabyShape {
         this.growSpeed =
             map(this.endSize, minSize, maxSize, settings.minGrowSpeed, settings.maxGrowSpeed)
 
-        this.colorManager = new ColorManager(this, shape.color);
-
-        if (this.isLoner) this.colorManager.color = this.colorManager.generateGray()
+        if (this.isLoner) this.color = this.generateGray()
+        this.color = shape.color ?? paper.Color.random()
     }
 
     protected static determineSex() {
@@ -121,6 +130,21 @@ export default class BabyShape {
 
         // If no match is found (shouldn't happen), return the last sex
         return sexes[sexes.length - 1].name;
+    }
+
+    applyVisibility(item: paper.Path | paper.PathItem = this.shape) {
+        item.strokeColor = this.color
+        item.shadowColor = this.color
+        item.strokeWidth = this.strokeWidth
+        item.strokeColor.alpha = this.calcAlpha()
+    }
+
+    generateGray(gray = random(0, minGray)) {
+        return new paper.Color(gray)
+    }
+
+    calcAlpha(distance = this.distance) {
+        return map(distance, 0, maxDistance, 1, 0)
     }
 
     calcSize(height = this.genitalHeight) {
@@ -152,10 +176,6 @@ export default class BabyShape {
         return this.calcSize();
     }
 
-    get color() {
-        return this.colorManager.color;
-    }
-
     get shape() {
         return this._shape;
     }
@@ -182,7 +202,7 @@ export default class BabyShape {
         const circle = new paper.Path.Circle(point, radius);
         // circle.simplify()
         circle.name = "Circle";
-        if (visible) this.colorManager.applyVisibility(circle);
+        if (visible) this.applyVisibility(circle);
 
         this.circleArr.push(circle);
         return circle;
@@ -251,7 +271,7 @@ export default class BabyShape {
 
             buttCircle.name = "buttCircle";
             penisCircle.name = "penisCircle";
-            this.colorManager.applyVisibility(penisCircle);
+            this.applyVisibility(penisCircle);
 
             this.circleArr.push(circle, buttCircle, penisCircle);
             this.shape = penisCircle;
@@ -277,7 +297,7 @@ export default class BabyShape {
                 }
             }
 
-            this.colorManager.applyVisibility(genitalCircle!);
+            this.applyVisibility(genitalCircle!);
             this.circleArr.push(circle, genitalCircle!);
 
             this.shape = genitalCircle!;
@@ -297,7 +317,7 @@ export default class BabyShape {
                 this.calcScaledRadius()
             );
 
-            circle.strokeColor!.alpha = this.colorManager.calcAlpha()
+            circle.strokeColor!.alpha = this.calcAlpha()
             this.shape = circle
         }
     }
