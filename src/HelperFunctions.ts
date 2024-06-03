@@ -1,5 +1,4 @@
 import paper from "paper";
-import AdultShape from "./AdultShape";
 
 export function removeFromArray(arr: any[], obj: any) {
     arr.splice(arr.indexOf(obj), 1)

@@ -1,9 +1,9 @@
 import paper from "paper";
 import ShapeManager from "./ShapeManager";
 import {colorDistance, constrain, map, random} from "./HelperFunctions";
-import {OrbitRelationship, Relationship, SeekRelationship} from "./relationship/Relationship";
+import {Relationship} from "./relationship/Relationship";
 import * as settings from "../Settings"
-import {borderOffset, maxVector, oobCheckInterval, seekInterval} from "../Settings"
+import {borderOffset, maxVector} from "../Settings"
 import BabyShape from "./BabyShape";
 
 export default class AdultShape {
@@ -123,9 +123,6 @@ export default class AdultShape {
             size: paper.view.size
         })
 
-        // const nearest = boundsPath.getNearestPoint(this.position)
-        // const dist = nearest.subtract(center).multiply(-1);
-
         const dist = this.position.subtract(center).multiply(-1);
         this.position = center.add(dist);
 
@@ -195,8 +192,6 @@ export default class AdultShape {
             .multiply(-settings.friction)
             .normalize(dragMag);
         this.applyForce(drag);
-
-        // console.log(this.velocity)
 
         this.applyForce(this.vector);
         this.velocity = this.velocity.add(this.acceleration);

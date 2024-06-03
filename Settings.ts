@@ -48,13 +48,17 @@ export const attractionThreshold: number = 100;
 export const oobCheckInterval: number = 50;
 
 //Chain
-export const chainMoveDiv: number = 3
+export const chainMoveDiv: number = 2.5
 export const minChainThickness: number = 3
-export const chainThickness: number = 5
 export const maxChainThickness: number = 6
+export const chainThickness: number = 5
+
 export const minChainLength: number = 50
 export const maxChainLength: number = 300
+
 export const chainGrowSpeed: number = 15
+export const chainShrinkSpeed: number = 5
+export const chainShrinkDelay: number = 5
 
 //Orbit
 export const orbitOffset: number = 0

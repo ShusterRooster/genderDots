@@ -10,9 +10,8 @@ function calcScale() {
 window.onload = function () {
     const canvas = document.getElementById('dotsCanvas') as HTMLCanvasElement
     paper.setup(canvas)
-    // paper.view.autoUpdate = false
 
-    let numWanted = 20
+    let numWanted = 10
     const width = window.innerWidth
     console.log(width)
 

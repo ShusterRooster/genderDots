@@ -1,4 +1,4 @@
-import {ChainRelationship, OrbitRelationship, Relationship, SeekRelationship} from "./relationship/Relationship";
+import {ChainRelationship, Relationship} from "./relationship/Relationship";
 import {randomFromArr} from "./HelperFunctions";
 import {relationshipTypes, seekInterval} from "../Settings";
 import paper from "paper";
