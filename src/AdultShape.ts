@@ -1,12 +1,25 @@
 import paper from "paper";
 import ShapeManager from "./ShapeManager";
-import {colorDistance, constrain, map, random} from "./HelperFunctions";
-import {Relationship} from "./relationship/Relationship";
+import {between, colorDistance, constrain, generateID, map, outOfBounds, random} from "./HelperFunctions";
+import Relationship from "./relationship/Relationship";
 import * as settings from "../Settings"
-import {borderOffset, maxVector} from "../Settings"
+import {
+    attractionThreshold,
+    debugMode,
+    maxSeekSpeed,
+    maxTimeOOB,
+    maxVector,
+    minVector,
+    rotationSpeedDeg,
+    rotationTolerance,
+    trailFadeDelay,
+    trailFadeSpeed
+} from "../Settings"
 import BabyShape from "./BabyShape";
+import EventLog from "./EventLog";
 
 export default class AdultShape {
+    name: string
     shapeManager?: ShapeManager;
 
     protected _vector?: paper.Point
@@ -14,6 +27,7 @@ export default class AdultShape {
 
     radius: number
     rotation: number
+    baseRotation: number
     size: number
 
     acceleration = new paper.Point(0, 0);
@@ -22,36 +36,61 @@ export default class AdultShape {
     color: paper.Color
     strokeWidth: number
 
-    relationship?: Relationship;
-    inRelationship = false
+    genitalWidth: number
+    genitalHeight: number
+    _relationship?: Relationship;
+    lastTimeInBounds = performance.now()
 
     teleport = true
     moving = true
-    seeking = false
 
     isLoner: boolean
+    eventLog?: EventLog
+    pivotPt: paper.Point
 
     constructor(baby: BabyShape) {
-        this.shapeManager = baby!.shapeManager;
+        this.shapeManager = baby?.shapeManager;
         this.radius = baby.radius
         this.rotation = baby.rotation
+        this.baseRotation = baby.rotation
         this.size = baby.size
         this.isLoner = baby.isLoner
         this.color = baby.color
         this.strokeWidth = baby.strokeWidth
         this.shape = baby.shape.clone()
+        this.name = this.shapeManager ? generateID(this, this.shapeManager.adults): "test"
+        this.pivotPt = baby.pivotPt!
 
+        this.genitalWidth = baby.genitalWidth
+        this.genitalHeight = baby.genitalHeight
+
+        this.shape.pivot = this.pivotPt
         this.generateFirstVector()
-        this.shapeManager!.babyToAdult(baby, this)
+        this.shapeManager?.babyToAdult(baby, this)
+
+        if(debugMode) {
+            this.eventLog = new EventLog(this)
+            this.eventLog.create(`${this.name} successfully initialized!`)
+        }
     }
 
     //runs only once to generate the first vector
     protected generateFirstVector() {
-        const length = random(settings.minVector, settings.maxVector);
+        const length = random(minVector, maxVector);
         this.vector = new paper.Point({
             length: length,
             angle: this.rotation - 90,
         });
+    }
+
+    generateVector() {
+        const length = random(minVector, maxVector);
+        this.vector = new paper.Point({
+            length: length,
+            angle: random(0, 360),
+        });
+
+        this.pointTowardsRecursion(this.vector.angle)
     }
 
     attractedTo(other: AdultShape): boolean {
@@ -59,7 +98,20 @@ export default class AdultShape {
             return false
 
         const colorDifference = colorDistance(this.color, other.color)
-        return colorDifference <= settings.attractionThreshold || colorDifference >= settings.attractionThreshold * 2;
+        return colorDifference <= attractionThreshold || colorDifference >= attractionThreshold * 2;
+    }
+
+    get relationship(): Relationship | undefined {
+        return this._relationship
+    }
+
+    set relationship(relationship: Relationship | undefined) {
+        this.eventLog?.create(`Relationship ${relationship} set!`, relationship)
+        this._relationship = relationship
+    }
+
+    get inRelationship() {
+        return this.relationship !== undefined
     }
 
     get vector(): paper.Point | undefined {
@@ -69,10 +121,12 @@ export default class AdultShape {
     set vector(vector: paper.Point) {
         const len = constrain(
             vector.length,
-            settings.minVector,
-            settings.maxVector
+            minVector,
+            maxVector
         );
-        this._vector = new paper.Point({length: len, angle: vector.angle});
+
+        const vec = this._vector = new paper.Point({length: len, angle: vector.angle});
+        this.eventLog?.create(`New vector set! ${vec}`)
     }
 
     get position() {
@@ -87,47 +141,60 @@ export default class AdultShape {
         if (this.moving)
             this.updatePosition();
 
-        if(this.teleport)
+        if (this.teleport)
             this.checkBorders();
     }
 
-    nearBorder() {
-        return (
-            this.position.x < borderOffset ||
-            this.position.x > paper.view.size.width - borderOffset ||
-            this.position.y < borderOffset ||
-            this.position.y > paper.view.size.height - borderOffset)
-    }
-
     //returns true if out of bounds
-    outOfBounds(path = this.shape) {
-        return (
-            !paper.view.bounds.contains(path.position) && !path.bounds.intersects(paper.view.bounds)
-        );
+    outOfBounds() {
+        return outOfBounds(this.shape)
     }
 
     checkBorders() {
         if (this.outOfBounds()) {
-            if(!this.position) return
+            if (!this.position) return
 
-            const center = paper.view.center;
-            const dist = this.position.subtract(center).multiply(-1);
-            this.position = center.add(dist);
+            this.teleportOpposite()
+        }
+        else {
+            this.lastTimeInBounds = performance.now()
         }
     }
 
-    teleportOpposite() {
-        const center = paper.view.center;
-        const boundsPath = new paper.Path.Rectangle({
-            point: [0, 0],
-            size: paper.view.size
-        })
+    promiseInBounds() {
+        return new Promise(async (resolve) => {
+            if (!this.outOfBounds()) {
+                resolve(true);
+            } else {
+                // await delay(teleportDelayTime)
+                this.promiseInBounds().then(resolve)
+            }
+        });
+    }
 
+    teleportOpposite() {
+        this.stuckOutOfBounds()
+        const center = paper.view.center;
         const dist = this.position.subtract(center).multiply(-1);
         this.position = center.add(dist);
+    }
 
-        this.position = center.add(dist);
-        boundsPath.remove()
+    fadeInOOB() {
+        if (this.shape.opacity < 1) {
+            this.shape.opacity += trailFadeSpeed
+            setTimeout(() => this.fadeInOOB(), trailFadeDelay)
+        } else {
+            return
+        }
+    }
+
+    stuckOutOfBounds() {
+        if(!this.inRelationship && performance.now() - this.lastTimeInBounds >= maxTimeOOB) {
+            this.eventLog?.create(`Stuck out of bounds at position ${this.position}`)
+            this.shape.opacity = 0
+            this.position = paper.Point.random().multiply(paper.view.viewSize);
+            this.fadeInOOB()
+        }
     }
 
     getOutsidePoint(angle: number) {
@@ -142,21 +209,17 @@ export default class AdultShape {
     attractShape(shape: AdultShape) {
         const G = 6.67428 * 10 ** -11;
         let force = this.position.subtract(shape.position);
-        const distance = constrain(
-            force.length,
-            settings.minVector,
-            settings.maxVector
-        );
-        const strength = (G * this.size * shape.size) / distance ** 2;
+        const strength = (G * this.size * shape.size) / force.length ** 2;
+        shape.applyForce(force.normalize(strength))
 
-        shape.vector = force.normalize(strength);
+        return force.length < shape.size
     }
 
     applyForce(force: paper.Point | undefined, heading = false) {
         const calc = force!.divide(this.size);
 
-        if (calc.length > settings.maxVector)
-            calc.normalize(settings.maxVector);
+        if (calc.length > maxVector)
+            calc.length = maxVector
 
         this.acceleration = this.acceleration.add(calc);
 
@@ -164,21 +227,33 @@ export default class AdultShape {
     }
 
     pointTowards(angle: number) {
-        const mod = ((angle - this.shape.rotation) / 180) * settings.maxForce;
+        angle += 90
+        const rot = (angle - this.shape.rotation)
+        const mod = (rot / rotationSpeedDeg)
         this.shape.rotation += mod;
     }
 
+    pointTowardsRecursion(angle: number) {
+        if(!between(this.shape.rotation + 90, angle - rotationTolerance, angle + rotationTolerance)) {
+            this.pointTowards(angle);
+
+            setTimeout(() => {
+                this.pointTowardsRecursion(angle)
+            }, 25)
+        }
+    }
+
     seek(target: AdultShape) {
-        if (!this.seeking) return
+        if (target.outOfBounds() || this.outOfBounds())
+            return
 
         let desired = target.position.subtract(this.position)
         const d = desired.length;
 
         if (d < this.size) {
-            const m = map(d, 0, this.size, 0, maxVector);
-            desired.normalize(m);
+            desired.length = map(d, 0, this.size, 0, maxSeekSpeed);
         } else {
-            desired.normalize(maxVector);
+            desired.length = maxSeekSpeed
         }
 
         const steer = desired.subtract(this.velocity);

@@ -14,7 +14,7 @@ import {
     minThickness
 } from "../Settings";
 import AdultShape from "./AdultShape";
-import {babyShape, PathArray} from "./Interfaces";
+import PathArray from "./PathArray";
 
 interface Genital {
     name: string;
@@ -56,6 +56,17 @@ function Appendage(
     return leftLine;
 }
 
+export interface babyShape {
+    shapeManager?: ShapeManager;
+    spawnPoint?: paper.Point;
+    radius?: number;
+    distance?: number;
+    sex?: string;
+    genitalWidth?: number;
+    genitalEndHeight?: number;
+    color?: paper.Color;
+}
+
 export default class BabyShape {
     spawnPoint: paper.Point;
     shapeManager: ShapeManager | undefined;
@@ -71,6 +82,7 @@ export default class BabyShape {
 
     doneGrowing = false;
     doneScaling = false;
+    pivotPt?: paper.Point
 
     circleArr = new PathArray("circleArr");
     shapeArr = new PathArray("shapeArr");
@@ -84,7 +96,7 @@ export default class BabyShape {
     strokeWidth = random(minThickness, maxThickness)
 
     constructor(shape: babyShape) {
-        this.shapeManager = shape.dotManager;
+        this.shapeManager = shape.shapeManager;
         this.spawnPoint =
             shape.spawnPoint ?? paper.Point.random().multiply(paper.view.viewSize);
 
@@ -110,8 +122,9 @@ export default class BabyShape {
         this.growSpeed =
             map(this.endSize, minSize, maxSize, settings.minGrowSpeed, settings.maxGrowSpeed)
 
-        if (this.isLoner) this.color = this.generateGray()
+
         this.color = shape.color ?? paper.Color.random()
+        if (this.isLoner) this.color = this.generateGray()
     }
 
     protected static determineSex() {
@@ -309,6 +322,7 @@ export default class BabyShape {
     moveTowardScreen() {
         if (this.distance <= 0) {
             this.doneScaling = true;
+            this.pivotPt = this.shape.bounds.center
         } else {
             this.distance -= this.scaleSpeed;
             const circle = this.genCircle(

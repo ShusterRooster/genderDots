@@ -3,22 +3,20 @@
 This project uses Parcel and TypeScript. Object creation and handling is done through **paper.js**. Run commands can be found in `package.json`.
 
 ## TODO:
+* fix relationships stuck out of bounds, only enact relationship changes in bounds?
+* have a promise function to wait until a shape is in bounds then enact relationship changes
+* clean up orbit path resizing, maybe try growing again!
+* fix generation of vectors
+* fix seekrel in having a list of all shapes currently in the leader.
 * fix display resizing
-* fix webflow error
-* see if webflow will host code
-* orbit out of bounds disappearing
-* orbit trail fading
 * screen resizing
 * initialization speed
-* make chains connection smoother
 
 
 ## How this works:
 Everything is started through the `main.ts` file which initializes and runs a ShapeManager instance. The ShapeManager handles a given set of dots and allows for the removal, addition, containing, etc. of the dots.
 
 Upon running, the dots are paired up to be in relationships and once they're ready, meaning they are in their final forms, they will enter a relationship with dots that are decided by the program based off their attraction to one another.
-
-In terms of future developments, the `seek()` functionality within the GenderShape class is quite buggy due to the dots teleporting once they go out of bounds. 
 
 Code could definitely be optimized but given that this is my first large-ish scale project, I don't know what I'm doing. 
 
