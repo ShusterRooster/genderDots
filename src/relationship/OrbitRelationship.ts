@@ -1,12 +1,12 @@
 import Relationship from "./Relationship";
 import AdultShape from "../AdultShape";
 import {
+    debugMode,
     genitalDiv,
     maxOrbitRotateSpeed,
     maxOrbitSpeed,
     maxRadius,
     maxSize,
-    maxTimeOOB,
     maxTrailLength,
     maxTrailSegments,
     maxTrailVector,
@@ -17,12 +17,10 @@ import {
     minTrailLength,
     minTrailSegments,
     minTrailVector,
+    oobTolerance,
+    orbitFadeDuration,
     orbitOffset,
-    orbitPathFadeSpeed,
-    orbitPathOpacity,
     orbitSeekDelay,
-    trailFadeDelay,
-    trailFadeSpeed,
     trailOpacity,
 } from "../../Settings";
 import {delay, map, outOfBounds, randomFromArr} from "../HelperFunctions";
@@ -47,15 +45,21 @@ export default class OrbitRelationship extends Relationship {
     static maxOrbitOffset = Math.sqrt((
         (maxRadius * 2) ** 2) + ((maxRadius * 2) + maxRadius) ** 2)
 
-    orbitDist: number
-    shapeOrbits = new Set<ShapeOrbit>()
     // @ts-ignore
-    _leader: AdultShape
-    path: paper.Path
+    protected _leader: AdultShape
+
+    // @ts-ignore
+    protected _orbitDist: number
     rotateSpeed: number
+
+    path: paper.Path
+    shapeOrbits = new Set<ShapeOrbit>()
     oldTrails = new PathArray("orbitTrail")
 
+    boundsRect?: paper.Path
+    timeTillOOB: number
     lastTimeInBounds = performance.now()
+    fadeTween?: paper.Tween
 
     constructor(partners: AdultShape[], shapeManager: ShapeManager) {
         super(partners, shapeManager);
@@ -64,65 +68,53 @@ export default class OrbitRelationship extends Relationship {
         this.orbitDist = this.calcOrbitDist()
         this.rotateSpeed = this.calcRotateSpeed()
         this.path = this.makeOrbitPath()
+        this.timeTillOOB = this.calcTimeOOB() + oobTolerance
 
         this.applyStartRelationshipAll()
-        this.fadeInOrbitPath()
+        this.fadeOrbitPath(1)
+
+        if(debugMode) {
+            this.boundsRect = new paper.Path.Rectangle(this.calcBounds())
+        }
+
     }
 
-    fadeInOrbitPath() {
-        return new Promise(async (resolve) => {
-            if (this.path.opacity >= orbitPathOpacity) {
-                resolve(true);
-            } else {
-                this.path.opacity += orbitPathFadeSpeed
-                await delay(orbitSeekDelay)
-                this.fadeInOrbitPath().then(resolve)
-            }
-        });
-    }
+    run() {
+        this.path.position = this.leader.position
+        this.path.rotation += this.rotateSpeed
 
-    fadeOutOrbitPath() {
-        return new Promise(async (resolve) => {
-            if (this.path.opacity <= 0) {
-                await delay(orbitSeekDelay)
-                resolve(true);
-            } else {
-                this.path.opacity -= orbitPathFadeSpeed
-                await delay(orbitSeekDelay)
-                this.fadeOutOrbitPath().then(resolve)
-            }
-        });
-    }
+        if(this.boundsRect)
+            this.boundsRect.position = this.leader.position
 
-    resetOrbitPath() {
-        this.eventLog?.create(`Orbit path reset`)
+        if(this.readyToTeleport()) {
+            this.checkOOB()
+        }
+        else {
+            this.lastTimeInBounds = performance.now()
+        }
 
-        this.fadeOutOrbitPath().then(() => {
-            this.orbitDist = this.calcOrbitDist()
-            this.rotateSpeed = this.calcRotateSpeed()
+        for (const orbit of this.shapeOrbits) {
+            orbit.point.angle += orbit.speed
+            const pos = orbit.point.add(this.leader.position)
+            const prev = orbit.shape.position
+            orbit.shape.position = pos
 
-            for (const orbit of this.shapeOrbits) {
-                orbit.point.length = this.orbitDist
-            }
-
-            this.path.remove()
-            this.path = this.makeOrbitPath()
-            this.fadeInOrbitPath()
-        })
+            this.handleTrail(orbit, prev, pos)
+        }
     }
 
     insideOrbitPath(shape: AdultShape) {
         return new Promise(async (resolve, reject) => {
             if(shape?.relationship !== this) {
-                this.eventLog?.create("Shape inside orbit Not Valid, Shape no longer in relationship", shape)
+                this.eventLog?.create(`${shape.name} inside orbit Not Valid, no longer in relationship`, shape)
                 shape.generateVector()
-                reject("OrbitRelationship no longer valid")
+                reject(`OrbitRelationship no longer valid for ${shape.name}`)
                 return
             }
             else if(this.leader == shape) {
                 this.eventLog?.create(`${shape.name} going inside orbit is leader, process stopped`, shape)
                 shape.generateVector()
-                reject("Leader stopped from going into orbit")
+                reject(`Leader ${shape.name} stopped from going into orbit`)
                 return
             }
 
@@ -131,7 +123,7 @@ export default class OrbitRelationship extends Relationship {
                     await delay(orbitSeekDelay)
                     resolve(true);
                 } else {
-                    shape.seek(this.leader)
+                    shape.arrive(this.leader.pivot)
                     await delay(orbitSeekDelay)
                     this.insideOrbitPath(shape).then(resolve, reject)
                 }
@@ -141,28 +133,6 @@ export default class OrbitRelationship extends Relationship {
                 this.insideOrbitPath(shape).then(resolve, reject)
             }
         });
-    }
-
-    makeTrail(shape: AdultShape) {
-        return new paper.Path({
-            name: "orbitTrail",
-            strokeCap: 'round',
-            strokeWidth: shape.strokeWidth * 0.5,
-            strokeColor: shape.color,
-            opacity: trailOpacity
-        })
-    }
-
-    makeOrbitPath() {
-        return  new paper.Path.Circle({
-            name: "orbitPath",
-            point: this.leader.position,
-            radius: this.calcOrbitDist(),
-            strokeColor: this.leader.color,
-            strokeWidth: 5,
-            dashArray: [20, 20],
-            opacity: 0
-        })
     }
 
     async applyRelationshipStart(shape: AdultShape) {
@@ -196,54 +166,13 @@ export default class OrbitRelationship extends Relationship {
 
             this.eventLog?.create(`Orbit for ${inter.name} added to orbits!`, inter)
             this.shapeOrbits.add(inter)
+
+            if(this.calcOrbitDist() != this.orbitDist) {
+                this.resetOrbitPath()
+            }
         })
     }
 
-    calcBoundDist(shape: AdultShape) {
-        const bounds = shape.shape.bounds
-        return bounds.topLeft.subtract(bounds.bottomRight).length
-    }
-
-    calcOrbitDist() {
-        let dist = 0
-
-        for (const partner of this.partners) {
-            const calc = this.calcBoundDist(partner)
-
-            if (calc > dist)
-                dist = calc
-        }
-
-        return dist + orbitOffset
-    }
-
-    calcOrbitSpeed(shape: AdultShape) {
-        return map(shape.size, minSize, maxSize, minOrbitSpeed, maxOrbitSpeed)
-    }
-
-    calcTrailSegments(shape: AdultShape) {
-        return map(shape.size, minRadius, maxRadius, minTrailSegments, maxTrailSegments)
-    }
-
-    calcTrailLength(shape: AdultShape) {
-        const segments = this.calcTrailSegments(shape)
-        return map(segments, minTrailSegments, maxTrailSegments, minTrailLength, maxTrailLength)
-    }
-
-    calcRotateSpeed() {
-        return map(this.calcOrbitDist(), OrbitRelationship.minOrbitOffset, OrbitRelationship.maxOrbitOffset, maxOrbitRotateSpeed, minOrbitRotateSpeed)
-    }
-
-    get leader() {
-        return this._leader
-    }
-
-    set leader(leader) {
-        this.removeOrbit(leader)
-        this._leader = leader
-
-        this.eventLog?.create(`New leader set!: ${leader.name}`, leader)
-    }
 
     findLeader(avoid?: AdultShape) {
         if(avoid)
@@ -252,6 +181,10 @@ export default class OrbitRelationship extends Relationship {
             this.eventLog?.create(`Finding leader, no avoid`)
 
 
+        if(this.partners.size == 1) {
+            console.log("partner size is 1 and avoid is probably that")
+            return
+        }
 
         let rand: AdultShape;
 
@@ -260,6 +193,11 @@ export default class OrbitRelationship extends Relationship {
         } while (rand === avoid);
 
         this.leader = rand
+
+        if(avoid) {
+            this.eventLog?.create(`Since avoid, leader's orbit will be removed.`, rand)
+            this.removeOrbit(rand)
+        }
     }
 
     removeLeader(leader: AdultShape) {
@@ -268,7 +206,7 @@ export default class OrbitRelationship extends Relationship {
         this.removeOrbit(leader)
         this.findLeader(leader)
 
-        this.fadeOutOrbitPath().then(() => {
+        this.fadeOrbitPath(0).then(() => {
             this.applyRelationshipEnd(leader)
             this.resetOrbitPath()
         })
@@ -291,8 +229,9 @@ export default class OrbitRelationship extends Relationship {
     }
 
     checkOOB() {
-        if(performance.now() - this.lastTimeInBounds >= maxTimeOOB) {
+        if(performance.now() - this.lastTimeInBounds >= this.timeTillOOB) {
             this.eventLog?.create(`Stuck out of bounds`)
+            this.eventLog?.create(`timeTillOOB: ${this.timeTillOOB}`)
 
             for (const shape of this.partners) {
                 shape.shape.opacity = 0
@@ -305,31 +244,10 @@ export default class OrbitRelationship extends Relationship {
             for (const shape of this.partners) {
                 shape.fadeInOOB()
             }
-            this.fadeInOrbitPath()
+            this.fadeOrbitPath(1)
         }
         else {
             this.leader.teleportOpposite()
-        }
-    }
-
-    run() {
-        this.path.position = this.leader.position
-        this.path.rotation += this.rotateSpeed
-
-        if(this.readyToTeleport()) {
-            this.checkOOB()
-        }
-        else {
-            this.lastTimeInBounds = performance.now()
-        }
-
-        for (const orbit of this.shapeOrbits) {
-            orbit.point.angle += orbit.speed
-            const pos = orbit.point.add(this.leader.position)
-            const prev = orbit.shape.position
-            orbit.shape.position = pos
-
-            this.handleTrail(orbit, prev, pos)
         }
     }
 
@@ -368,12 +286,9 @@ export default class OrbitRelationship extends Relationship {
             return
         }
 
-        if (trail.opacity > trailFadeSpeed) {
-            trail.opacity -= trailFadeSpeed
-            setTimeout(() => this.fadeTrail(trail), trailFadeDelay)
-        } else {
+        trail.tweenTo({opacity: 0}, orbitFadeDuration).then(() => {
             trail.remove()
-        }
+        })
     }
 
     removeOrbit(shape: AdultShape): boolean {
@@ -415,6 +330,73 @@ export default class OrbitRelationship extends Relationship {
         this.eventLog?.create("All orbits removed!", this.shapeOrbits)
     }
 
+    resetOrbitPath() {
+        this.eventLog?.create(`Orbit path reset`)
+
+        this.fadeOrbitPath(0).then(() => {
+            this.eventLog?.create(`Orbit path faded out!`, this.path)
+
+            this.orbitDist = this.calcOrbitDist()
+            this.rotateSpeed = this.calcRotateSpeed()
+            this.timeTillOOB = this.calcTimeOOB()
+
+            this.path.remove()
+            this.path = this.makeOrbitPath()
+            this.fadeOrbitPath(1)
+        })
+    }
+
+    applyRelationshipEnd(shape: AdultShape) {
+        super.applyRelationshipEnd(shape)
+
+        if (shape == this.leader)
+            this.removeLeader(shape)
+        else
+            this.removeOrbit(shape)
+
+        shape.teleport = true
+        shape.generateVector()
+
+        if(this.calcOrbitDist() != this.orbitDist)
+            this.resetOrbitPath()
+    }
+
+    endRelationship() {
+        this.fadeOrbitPath(0).then(() => {
+            this.path.remove()
+            this.removeAllOrbits()
+        })
+
+        super.endRelationship();
+    }
+
+    fadeOrbitPath(opacity: number) {
+        this.eventLog?.create(`Orbit path fading to opacity: ${opacity}`, this.path);
+        return this.fadeTween = this.path.tweenTo({opacity: opacity}, orbitFadeDuration)
+    }
+
+    makeTrail(shape: AdultShape) {
+        return new paper.Path({
+            name: "orbitTrail",
+            strokeCap: 'round',
+            strokeWidth: shape.strokeWidth * 0.5,
+            strokeColor: shape.color,
+            opacity: trailOpacity
+        })
+    }
+
+    makeOrbitPath() {
+        return  new paper.Path.Circle({
+            name: "orbitPath",
+            point: this.leader.position,
+            radius: this.calcOrbitDist(),
+            strokeColor: this.leader.color,
+            strokeWidth: 5,
+            dashArray: [20, 20],
+            opacity: 0
+        })
+    }
+
     info() {
         const base = super.info()
         let orbitStr = ""
@@ -426,37 +408,70 @@ export default class OrbitRelationship extends Relationship {
         return `${base}<br>leader: ${this.leader.name}<br>orbits: ${orbitStr}`
     }
 
-    applyRelationshipEnd(shape: AdultShape) {
-        super.applyRelationshipEnd(shape)
-        this.removeOrbit(shape)
-        shape.teleport = true
-        shape.generateVector()
+    get leader() {
+        return this._leader
     }
 
-    addPartnerAction(partner: AdultShape) {
-        if(this.calcOrbitDist() != this.orbitDist) {
-            this.resetOrbitPath()
-        }
+    set leader(leader) {
+        this._leader = leader
+
+        this.eventLog?.create(`New leader set!: ${leader.name}`, leader)
     }
 
-    removePartnerAction(shape: AdultShape) {
-        if (shape == this.leader) {
-            this.removeLeader(shape)
-            return
-        }
-
-        this.removeOrbit(shape)
-        if(this.calcOrbitDist() != this.orbitDist) {
-            this.resetOrbitPath()
-        }
+    get orbitDist() {
+        return this._orbitDist
     }
 
-    endRelationship() {
-        this.fadeOutOrbitPath().then(() => {
-            this.path.remove()
-            this.removeAllOrbits()
-        })
+    set orbitDist(orbitDist: number) {
+        for (const orbit of this.shapeOrbits) {
+            orbit.point.length = orbitDist
+        }
 
-        super.endRelationship();
+        this._orbitDist = orbitDist
+    }
+
+    calcBoundDist(shape: AdultShape) {
+        const bounds = shape.shape.bounds
+        return bounds.topLeft.subtract(bounds.bottomRight).length
+    }
+
+    calcOrbitDist() {
+        let dist = 0
+
+        for (const partner of this.partners) {
+            const calc = this.calcBoundDist(partner)
+
+            if (calc > dist)
+                dist = calc
+        }
+
+        return dist + orbitOffset
+    }
+
+    calcTimeOOB() {
+        const dist = this.calcBounds().height
+        return this.leader.timeTillOOB(true, dist)
+    }
+
+    calcBounds() {
+        const dist = this.orbitDist * 3
+        return new paper.Size(dist, dist)
+    }
+
+    calcOrbitSpeed(shape: AdultShape) {
+        return map(shape.size, minSize, maxSize, minOrbitSpeed, maxOrbitSpeed)
+    }
+
+    calcTrailSegments(shape: AdultShape) {
+        return map(shape.size, minRadius, maxRadius, minTrailSegments, maxTrailSegments)
+    }
+
+    calcTrailLength(shape: AdultShape) {
+        const segments = this.calcTrailSegments(shape)
+        return map(segments, minTrailSegments, maxTrailSegments, minTrailLength, maxTrailLength)
+    }
+
+    calcRotateSpeed() {
+        return map(this.calcOrbitDist(), OrbitRelationship.minOrbitOffset, OrbitRelationship.maxOrbitOffset, maxOrbitRotateSpeed, minOrbitRotateSpeed)
     }
 }

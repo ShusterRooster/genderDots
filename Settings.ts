@@ -3,6 +3,11 @@
  */
 export const debugMode = true
 
+/**
+ * Uses TestMain instead of regular main for testing purposes.
+ */
+export const testingMode = false
+
 export interface Probability {
     name: string,
     probability: number
@@ -12,7 +17,7 @@ export interface Probability {
 /**
  * Number of shapes wanted when running the program
  */
-export const numWanted: number = 35
+export const numWanted: number = 8
 
 /**
  * Probability of each gender showing up in the program. Change as desired.
@@ -32,18 +37,19 @@ export const maxRadius: number = 100;
  */
 export const genitalDiv: number = 5;
 
-export const minVector: number = 1;
-export const maxVector: number = 6;
+export const minVector: number = 0.25;
+export const maxVector: number = 8;
 
-/**
- * Div of how fast a shape can rotate, the lower the faster
- */
-export const rotationSpeedDeg: number = 120;
+export const boostVector: number = 20
+export const maxBoostVector: number = 200;
+
+export const minRotationSpeed: number = 0.2
+export const maxRotationSpeed: number = 4;
 
 /**
  * Tolerance of how accurate the angle needs to be when pointing towards it.
  */
-export const rotationTolerance: number = 2
+export const rotationTolerance: number = minRotationSpeed / 2
 
 /**
  * Minimum distance away from 0 that a BabyShape can be for scaling.
@@ -61,10 +67,9 @@ export const maxDistance: number = 350;
 export const baseScaleSpeed: number = 7.5;
 
 /**
- * Maximum time in milliseconds an AdultShape can be out of bounds (OOB)
+ * Extra allotted time for a shape to be out of bounds (OOB)
  */
-export const maxTimeOOB: number = 3000
-
+export const oobTolerance: number = 500
 /**
  * Maximum speed an AdultShape can seek() towards another AdultShape.
  */
@@ -95,7 +100,7 @@ export const maxSize: number = maxRadius ** 3;
 /**
  * Amount of movement friction AdultShapes are applied.
  */
-export const friction: number = 0.5;
+export const friction: number = 0.75;
 
 //Color
 /**
@@ -119,8 +124,6 @@ export const maxThickness: number = 12
  * Delay for running recursive loops to avoid too much recursion error.
  */
 export const recursiveDelay: number = 20
-export const minRelationships: number = Math.floor(numWanted / 5)
-export const maxRelationships: number = Math.floor(numWanted / 3)
 
 /**
  * Chance of a shape being a loner.
@@ -194,6 +197,7 @@ export const chainShrinkDelay: number = 5
 export const orbitOffset: number = 0
 export const orbitPathOpacity: number = 0.32
 export const orbitPathFadeSpeed: number = 0.03
+export const orbitFadeDuration: number = 750
 
 /**
  * Millisecond delay for repeating recursive methods.
@@ -213,6 +217,8 @@ export const minOrbitSpeed: number = 1
  */
 export const maxOrbitSpeed: number = 8
 
+
+//Orbit Trail
 /**
  * Minimum segments a trail in an OrbitRelationship can have.
  */

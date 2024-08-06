@@ -42,7 +42,7 @@ export default class EventLog {
      * @param event
      */
     print(event: Event) {
-        console.group(event.message)
+        console.groupCollapsed(event.message)
         this.printObjects(event.objects)
         this.printObject(event.state)
         console.log(event.time)

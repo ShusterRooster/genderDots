@@ -166,3 +166,50 @@ export function delay(ms: number): Promise<void> {
 export function outOfBounds(path: paper.Path) {
     return (!path.bounds.intersects(paper.view.bounds));
 }
+
+export function inBounds(path: paper.Path) {
+    return paper.view.bounds.contains(path.position)
+}
+
+export function tolerance(val: number, n: number, tol: number) {
+    return between(val, tol - n, tol + n)
+}
+
+export function pythag(a: number, b: number) {
+    return Math.sqrt((a ** 2) + (b ** 2))
+}
+
+export function testLine(from: paper.Point, to: paper.Point,  color = "red", width = 3) {
+    return new paper.Path.Line({
+        from: from,
+        to: to,
+        strokeWidth: width,
+        strokeColor: color
+    })
+}
+
+export function testLength(start: paper.Point, length: number, angle: number, color?: string, width?: number) {
+    const point = new paper.Point({
+        length: length,
+        angle: angle
+    }).add(start)
+
+
+    return testLine(start, point, color, width)
+}
+
+export function testDot(center: paper.Point, radius = 3, color = "green") {
+    return new paper.Path.Circle({
+        center: center,
+        radius: radius,
+        fillColor: color
+    })
+}
+
+export function direction(n: number) {
+    return n < 0 ? -1 : 1;
+}
+
+export function log(name: string, value: any){
+    console.log(`${name}: ${value}`);
+}

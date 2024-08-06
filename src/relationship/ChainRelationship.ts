@@ -20,6 +20,16 @@ export default class ChainRelationship extends Relationship {
     }
 
     genChains() {
+        for (const chain of this.chainSet) {
+            if(chain.chainExists()) {
+                chain.shrinkChain()
+            }
+
+            else if(chain.connectorsExist()) {
+                chain.shrinkConnectors()
+            }
+        }
+
         this.removeAll()
 
         if(this.partners.size == 1)
@@ -51,11 +61,13 @@ export default class ChainRelationship extends Relationship {
         this.chainSet.clear()
     }
 
-    addPartnerAction(partner: AdultShape) {
+    applyRelationshipStart(shape: AdultShape) {
+        super.applyRelationshipStart(shape);
         this.genChains()
     }
 
-    removePartnerAction(partner: AdultShape) {
+    applyRelationshipEnd(shape: AdultShape) {
+        super.applyRelationshipEnd(shape);
         this.genChains()
     }
 

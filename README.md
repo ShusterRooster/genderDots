@@ -3,11 +3,7 @@
 This project uses Parcel and TypeScript. Object creation and handling is done through **paper.js**. Run commands can be found in `package.json`.
 
 ## TODO:
-* fix relationships stuck out of bounds, only enact relationship changes in bounds?
-* have a promise function to wait until a shape is in bounds then enact relationship changes
-* clean up orbit path resizing, maybe try growing again!
-* fix generation of vectors
-* fix seekrel in having a list of all shapes currently in the leader.
+* orbit paths are broken lol
 * fix display resizing
 * screen resizing
 * initialization speed

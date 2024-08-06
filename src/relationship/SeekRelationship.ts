@@ -51,18 +51,15 @@ export default class SeekRelationship extends Relationship {
     }
 
     run() {
-        if (this.readyToTeleport()) {
-            this.teleportAll()
-        }
-
-        for (const shape of this.partners) {
-            if (shape !== this.leader) {
-                shape.seek(this.leader);
+        for (const shape of this.inside) {
+            if (shape !== this.leader && !this.leader.outOfBounds()) {
+                shape.alignPivot(this.leader.pivot)
+                shape.pointTowards(this.leader.vector.angle)
             }
         }
     }
 
-    insideRel(shape: AdultShape) {
+    insideRel(shape: AdultShape, arriveBy: number) {
         return new Promise(async (resolve, reject) => {
             if (shape?.relationship !== this) {
                 this.eventLog?.create(`Shape seeking no longer valid, shape ${shape.name} no longer in relationship`, shape)
@@ -77,18 +74,27 @@ export default class SeekRelationship extends Relationship {
             }
 
             if (this.leader !== undefined && shape !== undefined) {
-                if (this.leader.shape.bounds.intersects(shape.shape.bounds)) {
+                const dist =  this.leader.pivot.subtract(shape.pivot).length
+                let condition = dist < this.leader.radius / 2
+
+                if(performance.now() >= arriveBy) {
+                    shape.boosting = true
+                    shape.boostSpeed += (performance.now() - arriveBy) / 2500
+                    condition = dist < this.leader.radius
+                }
+
+                if (condition) {
                     await delay(recursiveDelay)
                     this.eventLog?.create(`${shape.name} successfully inside SeekRelationship!`, shape)
                     resolve(true);
                 } else {
-                    shape.seek(this.leader)
+                    shape.arrive(this.leader.position)
                     await delay(recursiveDelay)
-                    this.insideRel(shape).then(resolve, reject)
+                    this.insideRel(shape, arriveBy).then(resolve, reject)
                 }
             } else {
                 await delay(recursiveDelay)
-                this.insideRel(shape).then(resolve, reject)
+                this.insideRel(shape, arriveBy).then(resolve, reject)
             }
         });
     }
@@ -97,7 +103,7 @@ export default class SeekRelationship extends Relationship {
         this.eventLog?.create(`removeInside: ${partner.name} to be removed from inside!`, [partner, this.inside])
         const result = this.inside.delete(partner)
 
-        if(result)
+        if (result)
             this.eventLog?.create(`removeInside: ${partner.name} found and removed successfully from inside Set!`, [partner, this.inside])
         else
             this.eventLog?.create(`removeInside: ${partner.name} does not exist in set and was not removed.`, [partner, this.inside])
@@ -105,20 +111,41 @@ export default class SeekRelationship extends Relationship {
         return result
     }
 
+    maxTimeArrive(shape: AdultShape) {
+        const dist = this.leader.pivot.subtract(shape.pivot).length
+        const time = shape.timeTillOOB(true, dist)
+
+        return time * 8
+    }
+
     applyRelationshipStart(shape: AdultShape) {
         super.applyRelationshipStart(shape);
-        shape.teleport = false
+        shape.applyVector = false
 
-        this.insideRel(shape).then(() => {
+        if (shape == this.leader) {
+            this.eventLog?.create(`${shape.name} is leader, skipping insideRel!`, shape)
+            shape.applyVector = true
+            return
+        }
+
+        const maxTime = this.maxTimeArrive(shape)
+        this.insideRel(shape, performance.now() + maxTime).then(() => {
+            shape.teleport = false
+            shape.boosting = false
             this.inside.add(shape)
             this.eventLog?.create(`${shape.name} added into inside Set`, [shape, this.inside])
         })
     }
 
     applyRelationshipEnd(shape: AdultShape) {
-        super.applyRelationshipStart(shape);
+        super.applyRelationshipEnd(shape)
         shape.teleport = true
+        shape.applyVector = true
         this.removeInside(shape)
+
+        if(this.leader) {
+            this.leader = this.findLeader()
+        }
     }
 
     findLeader(): AdultShape {
@@ -126,12 +153,10 @@ export default class SeekRelationship extends Relationship {
         this.eventLog?.create(`Leader chosen as ${leader.name}`, leader)
 
         this.removeInside(leader)
+        leader.teleport = true
+        leader.boosting = false
+        leader.applyVector = true
+
         return leader
-    }
-
-    removePartnerAction(partner: AdultShape) {
-        if (partner == this.leader)
-            this.leader = this.findLeader()
-
     }
 }

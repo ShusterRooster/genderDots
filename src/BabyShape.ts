@@ -61,6 +61,8 @@ export interface babyShape {
     spawnPoint?: paper.Point;
     radius?: number;
     distance?: number;
+    rotation?: number;
+    strokeWidth?: number;
     sex?: string;
     genitalWidth?: number;
     genitalEndHeight?: number;
@@ -82,7 +84,6 @@ export default class BabyShape {
 
     doneGrowing = false;
     doneScaling = false;
-    pivotPt?: paper.Point
 
     circleArr = new PathArray("circleArr");
     shapeArr = new PathArray("shapeArr");
@@ -94,11 +95,15 @@ export default class BabyShape {
     genitalEndHeight: number;
     isLoner = determineProb(lonerChance)
     strokeWidth = random(minThickness, maxThickness)
+    shapeBounds?: paper.Rectangle
 
     constructor(shape: babyShape) {
         this.shapeManager = shape.shapeManager;
         this.spawnPoint =
             shape.spawnPoint ?? paper.Point.random().multiply(paper.view.viewSize);
+
+        this.rotation = shape.rotation ?? this.rotation
+        this.strokeWidth = shape.strokeWidth ?? this.strokeWidth
 
         this.radius =
             shape.radius ?? random(settings.minRadius, settings.maxRadius);
@@ -123,80 +128,8 @@ export default class BabyShape {
             map(this.endSize, minSize, maxSize, settings.minGrowSpeed, settings.maxGrowSpeed)
 
 
-        this.color = shape.color ?? paper.Color.random()
+        this.color = shape.color || paper.Color.random()
         if (this.isLoner) this.color = this.generateGray()
-    }
-
-    protected static determineSex() {
-        const sexes = settings.sexes;
-        const random = Math.random() * 100;
-
-        // Loop through sexes and accumulate probability
-        let accumulatedProbability = 0;
-
-        for (const sex of sexes) {
-            accumulatedProbability += sex.probability;
-            if (random <= accumulatedProbability) {
-                return sex.name; // Return the name of the sex
-            }
-        }
-
-        // If no match is found (shouldn't happen), return the last sex
-        return sexes[sexes.length - 1].name;
-    }
-
-    applyVisibility(item: paper.Path | paper.PathItem = this.shape) {
-        item.strokeColor = this.color
-        item.shadowColor = this.color
-        item.strokeWidth = this.strokeWidth
-        item.strokeColor.alpha = this.calcAlpha()
-    }
-
-    generateGray(gray = random(0, minGray)) {
-        return new paper.Color(gray)
-    }
-
-    calcAlpha(distance = this.distance) {
-        return map(distance, 0, maxDistance, 1, 0)
-    }
-
-    calcSize(height = this.genitalHeight) {
-        const size = this.genitalWidth * height * this.radius;
-        return map(
-            size,
-            settings.minSize,
-            settings.maxSize,
-            settings.minRadius,
-            settings.maxRadius
-        );
-    }
-
-    calcScaledRadius(distance = this.distance) {
-        return map(
-            distance,
-            settings.minDistance,
-            settings.maxDistance,
-            this.radius,
-            settings.minRadius
-        );
-    }
-
-    get endSize() {
-        return this.calcSize(this.genitalEndHeight);
-    }
-
-    get size() {
-        return this.calcSize();
-    }
-
-    get shape() {
-        return this._shape;
-    }
-
-    set shape(shape) {
-        this._shape = shape;
-        this._shape.name = "currentShape";
-        this.shapeArr.push(this._shape);
     }
 
     run() {
@@ -233,26 +166,21 @@ export default class BabyShape {
     genGenitalia(height: number, sex = this.sex, apply = true) {
         let value: Genital[];
 
+        const yPosPenis = this.spawnPoint.y - this.radius + this.genitalWidth / 2;
+        const yPosButt = this.spawnPoint.y + this.radius + this.genitalWidth / 2;
+
         switch (sex) {
             case "male": {
-                const yPosPenis =
-                    this.spawnPoint.y - this.radius + this.genitalWidth / 2;
                 value = [this.genPart(height, yPosPenis, "penis")];
                 break;
             }
 
             case "female": {
-                const yPosButt =
-                    this.spawnPoint.y + this.radius + this.genitalWidth / 2;
                 value = [this.genPart(height, yPosButt, "butt")];
                 break;
             }
 
             case "intersex": {
-                const yPosPenis =
-                    this.spawnPoint.y - this.radius + this.genitalWidth / 2;
-                const yPosButt =
-                    this.spawnPoint.y + this.radius + this.genitalWidth / 2;
                 value = [
                     this.genPart(height, yPosPenis, "penis"),
                     this.genPart(height, yPosButt, "butt"),
@@ -317,12 +245,14 @@ export default class BabyShape {
             this.shape.applyMatrix = false;
             this.shape.rotation = this.rotation;
         }
+
+        // this.shape.applyMatrix = false;
+        this.shape.rotation = this.rotation;
     }
 
     moveTowardScreen() {
         if (this.distance <= 0) {
             this.doneScaling = true;
-            this.pivotPt = this.shape.bounds.center
         } else {
             this.distance -= this.scaleSpeed;
             const circle = this.genCircle(
@@ -334,5 +264,81 @@ export default class BabyShape {
             circle.strokeColor!.alpha = this.calcAlpha()
             this.shape = circle
         }
+    }
+
+    protected static determineSex() {
+        const sexes = settings.sexes;
+        const random = Math.random() * 100;
+
+        // Loop through sexes and accumulate probability
+        let accumulatedProbability = 0;
+
+        for (const sex of sexes) {
+            accumulatedProbability += sex.probability;
+            if (random <= accumulatedProbability) {
+                return sex.name; // Return the name of the sex
+            }
+        }
+
+        // If no match is found (shouldn't happen), return the last sex
+        return sexes[sexes.length - 1].name;
+    }
+
+    applyVisibility(item: paper.Path | paper.PathItem = this.shape) {
+        item.strokeColor = this.color
+        item.strokeWidth = this.strokeWidth
+        item.strokeColor.alpha = this.calcAlpha()
+    }
+
+    generateGray(gray = random(0, minGray)) {
+        return new paper.Color(gray)
+    }
+
+    calcAlpha(distance = this.distance) {
+        return map(distance, 0, maxDistance, 1, 0)
+    }
+
+    calcSize(height = this.genitalHeight) {
+        const size = this.genitalWidth * height * this.radius;
+        return map(
+            size,
+            settings.minSize,
+            settings.maxSize,
+            settings.minRadius,
+            settings.maxRadius
+        );
+    }
+
+    calcScaledRadius(distance = this.distance) {
+        return map(
+            distance,
+            settings.minDistance,
+            settings.maxDistance,
+            this.radius,
+            settings.minRadius
+        );
+    }
+
+    get endSize() {
+        return this.calcSize(this.genitalEndHeight);
+    }
+
+    get size() {
+        return this.calcSize();
+    }
+
+    get shape() {
+        return this._shape;
+    }
+
+    set shape(shape) {
+        this._shape = shape;
+        this.shapeBounds = shape.bounds
+
+        this._shape.position = this.spawnPoint
+        this._shape.pivot = this.spawnPoint
+
+        this._shape.name = "currentShape";
+        this.shapeArr.push(this._shape);
     }
 }

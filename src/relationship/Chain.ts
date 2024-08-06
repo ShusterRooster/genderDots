@@ -3,11 +3,7 @@ import * as settings from "../../Settings"
 import {chainGrowSpeed, chainShrinkDelay, chainShrinkSpeed, chainThickness} from "../../Settings"
 import AdultShape from "../AdultShape";
 import PathArray from "../PathArray";
-
-interface ChainPoints {
-    start: paper.Point,
-    end: paper.Point
-}
+import {inBounds} from "../HelperFunctions";
 
 export default class Chain {
     a: AdultShape
@@ -17,8 +13,9 @@ export default class Chain {
     bConnector?: paper.Path
 
     avgColor: paper.Color
-    protected _chain: paper.Path | undefined
+    protected _chain?: paper.Path
     lineArr = new PathArray("lineArr")
+    growDirection = 1
 
     constructor(a: AdultShape, b: AdultShape) {
         this.a = a
@@ -27,96 +24,99 @@ export default class Chain {
     }
 
     run() {
-        if (!this.chain) {
-            this.grow()
-        } else {
-            this.update()
+        //out of bounds
+        if (!this.inBounds()) {
+            if (this.chainExists()) {
+                this.shrinkChain()
+                this.remove()
+            }
+
+            //while connecting and one OOB
+            if (this.connectorsExist()) {
+                this.growDirection = -1
+                this.shrinkConnectors()
+            }
+        }
+
+        //in bounds
+        else if (this.inBounds()) {
+            //if normal
+            if (this.chainExists()) {
+                this.update()
+            }
+            //chain doesn't exist
+            else {
+                if (this.connectorsExist()) {
+                    if (this.aConnector!.position == undefined ||
+                        this.bConnector!.position == undefined) {
+                        this.growDirection = 1
+                    } else if (this.growDirection == 1)
+                        this.grow()
+                    else {
+                        this.shrink()
+                    }
+                } else {
+                    this.growDirection = 1
+                    this.initConnectors()
+                }
+            }
         }
     }
 
-    get chain(): paper.Path | undefined {
-        return this._chain
+    grow() {
+        if (this.aConnector!.bounds.intersects(this.bConnector!.bounds)) {
+            this.removeConnectors()
+            this.genChain()
+        } else {
+            const startPts = this.getPoints()
+            const desired = startPts[0].add(startPts[1]).divide(2)
+            const aDiff = desired.subtract(startPts[0])
+            const bDiff = desired.subtract(startPts[1])
+
+            this.aConnector!.firstSegment.point = startPts[0]
+            this.bConnector!.firstSegment.point = startPts[1]
+
+            const aPoint = this.calcPoint(this.aConnector!, aDiff, "grow")
+            const bPoint = this.calcPoint(this.bConnector!, bDiff, "grow")
+
+            this.aConnector!.lastSegment.point = this.aConnector!.firstSegment.point.add(aPoint)
+            this.bConnector!.lastSegment.point = this.bConnector!.firstSegment.point.add(bPoint)
+        }
     }
 
-    set chain(chain: paper.Path) {
-        this._chain = chain
-        this.lineArr.push(chain)
+    shrink() {
+        if (this.aConnector!.length > chainGrowSpeed &&
+            this.bConnector!.length > chainGrowSpeed) {
+
+            const startPts = this.getPoints()
+            const start = startPts[0]
+            const end = startPts[1]
+            const mid = start.add(end).divide(2)
+
+            const startMidDiff = mid.subtract(start)
+            const startToMid = new paper.Point({
+                length: startMidDiff.length - chainShrinkSpeed,
+                angle: startMidDiff.angle
+            })
+
+            const midEndDiff = end.subtract(mid)
+            const midToEnd = new paper.Point({
+                length: midEndDiff.length - chainShrinkSpeed,
+                angle: midEndDiff.angle
+            })
+
+            this.aConnector!.firstSegment.point = start
+            this.bConnector!.firstSegment.point = end
+
+            this.aConnector!.lastSegment.point = start.add(startToMid)
+            this.bConnector!.lastSegment.point = end.add(midToEnd)
+        } else {
+            this.removeConnectors()
+        }
     }
 
-    remove() {
-        this._chain?.remove()
-        this._chain = undefined
-        this.lineArr.clearArr()
-
-        this.aConnector?.remove()
-        this.bConnector?.remove()
-    }
-
-    getIntersections(shape: AdultShape, line: paper.Path) {
-        const inter = line.getIntersections(shape.shape)
-        if (inter.length > 0)
-            return inter[0].point
-        else
-            return shape.position
-    }
-
-    getPoints(): ChainPoints {
-        const line = new paper.Path.Line({
-            from: this.a.position,
-            to: this.b.position
-        })
-
-        const aStart = this.getIntersections(this.a, line)
-        const bStart = this.getIntersections(this.b, line)
-
-        line.remove()
-        return {start: aStart, end: bStart}
-    }
-
-    initConnectors() {
-        this.aConnector = new paper.Path.Line({
-            from: this.a.position,
-            to: this.a.position,
-            strokeColor: this.a.color,
-            strokeCap: 'round',
-            strokeWidth: chainThickness
-        })
-
-        this.bConnector = new paper.Path.Line({
-            from: this.b.position,
-            to: this.b.position,
-            strokeColor: this.b.color,
-            strokeCap: 'round',
-            strokeWidth: chainThickness
-        })
-    }
-
-    calcPoint(connector: paper.Path, diff: paper.Point, behavior: string) {
-        let growVal: number
-
-        if (behavior == "grow")
-            growVal = chainGrowSpeed
-        else if (behavior == "shrink")
-            growVal = -chainGrowSpeed
-        else
-            growVal = 0
-
-        return new paper.Point({
-            length: connector.length + growVal,
-            angle: diff.angle
-        })
-    }
-
-    connectorsExist() {
-        return this.aConnector !== undefined || this.bConnector !== undefined
-    }
-
-    eitherOutOfBounds() {
-        return this.a.outOfBounds() || this.b.outOfBounds()
-    }
-
-    shrink(path: paper.Path, clone = true) {
-        if(clone) {
+    shrinkCenter(path: paper.Path, clone = true) {
+        if (clone) {
             const oldPath = path
             path = path.clone()
             oldPath.remove()
@@ -141,70 +141,97 @@ export default class Chain {
             path.firstSegment.point = mid.subtract(startToMid)
             path.lastSegment.point = mid.add(midToEnd)
 
-            setTimeout(() => this.shrink(path, false), chainShrinkDelay)
-        }
-        else {
+            setTimeout(() => this.shrinkCenter(path, false), chainShrinkDelay)
+        } else {
             path.remove()
         }
     }
 
-    grow() {
-        if (this.connectorsExist() && this.eitherOutOfBounds()) {
-            // this.shrinkConnectors(this.aConnector!, this.bConnector!)
-            this.shrink(this.aConnector!)
-            this.shrink(this.bConnector!)
-            return
-        }
 
-        else if ((!this.connectorsExist() && !this.eitherOutOfBounds())
-        || (!this.connectorsExist() && this.eitherOutOfBounds())) {
-            this.initConnectors()
-        }
+    shrinkConnectors() {
+        this.shrinkCenter(this.aConnector!)
+        this.shrinkCenter(this.bConnector!)
+    }
 
-        else if (this.aConnector!.bounds.intersects(this.bConnector!.bounds)) {
-            this.aConnector!.remove()
-            this.bConnector!.remove()
+    shrinkChain() {
+        this.initConnectors()
+        this.removeChain()
 
-            this.aConnector = undefined
-            this.bConnector = undefined
+        const startPts = this.getPoints()
+        const start = startPts[0]
+        const end = startPts[1]
+        const mid = start.add(end).divide(2)
 
-            this.genChain()
-        } else {
-            const startPts = this.getPoints()
-            const desired = startPts.start.add(startPts.end).divide(2)
-            const aDiff = desired.subtract(startPts.start)
-            const bDiff = desired.subtract(startPts.end)
+        this.aConnector!.firstSegment.point = start
+        this.aConnector!.lastSegment.point = mid
 
-            this.aConnector!.firstSegment.point = startPts.start
-            this.bConnector!.firstSegment.point = startPts.end
+        this.bConnector!.firstSegment.point = mid
+        this.bConnector!.lastSegment.point = end
 
-            const aPoint = this.calcPoint(this.aConnector!, aDiff, "grow")
-            const bPoint = this.calcPoint(this.bConnector!, bDiff, "grow")
-
-            this.aConnector!.lastSegment.point = this.aConnector!.firstSegment.point.add(aPoint)
-            this.bConnector!.lastSegment.point = this.bConnector!.firstSegment.point.add(bPoint)
-        }
+        this.shrinkConnectors()
     }
 
     update() {
-        if (this.eitherOutOfBounds()) {
-            this.remove()
-            return
-        }
-        else {
-            const startPts = this.getPoints()
-            this.chain!.firstSegment.point = startPts.start
-            this.chain!.lastSegment.point = startPts.end
+        const startPts = this.getPoints()
+        this.chain!.firstSegment.point = startPts[0]
+        this.chain!.lastSegment.point = startPts[1]
 
-            this.constrainMovement()
-        }
+        this.constrainMovement()
+    }
+
+    initConnectors() {
+        this.aConnector = new paper.Path.Line({
+            from: this.a.position,
+            to: this.a.position,
+            strokeColor: this.a.color,
+            strokeCap: 'round',
+            strokeWidth: chainThickness
+        })
+
+        this.bConnector = new paper.Path.Line({
+            from: this.b.position,
+            to: this.b.position,
+            strokeColor: this.b.color,
+            strokeCap: 'round',
+            strokeWidth: chainThickness
+        })
+    }
+
+
+    getPoints() {
+        const line = new paper.Path.Line({
+            from: this.a.position,
+            to: this.b.position
+        })
+
+        const aStart = this.getIntersections(this.a, line)
+        const bStart = this.getIntersections(this.b, line)
+
+        line.remove()
+        return [aStart, bStart]
+    }
+
+    calcPoint(connector: paper.Path, diff: paper.Point, behavior: string) {
+        let growVal: number
+
+        if (behavior == "grow")
+            growVal = chainGrowSpeed
+        else if (behavior == "shrink")
+            growVal = -chainGrowSpeed
+        else
+            growVal = 0
+
+        return new paper.Point({
+            length: connector.length + growVal,
+            angle: diff.angle
+        })
     }
 
     genChain() {
         const startPts = this.getPoints()
         this.chain = new paper.Path.Line({
-            from: startPts.start,
-            to: startPts.end,
+            from: startPts[0],
+            to: startPts[1],
             strokeColor: this.avgColor,
             strokeCap: 'round',
             strokeWidth: chainThickness
@@ -239,5 +266,53 @@ export default class Chain {
             const bEndDiff = end.subtract(this.b.position)
             this.b.applyForce(bEndDiff.divide(this.b.size * settings.chainMoveDiv))
         }
+    }
+
+    remove() {
+        this.removeChain()
+        this.removeConnectors()
+    }
+
+    removeChain() {
+        this._chain?.remove()
+        this._chain = undefined
+        this.lineArr.clearArr()
+    }
+
+    removeConnectors() {
+        this.aConnector?.remove()
+        this.bConnector?.remove()
+
+        this.aConnector = undefined
+        this.bConnector = undefined
+    }
+
+    connectorsExist() {
+        return this.aConnector !== undefined || this.bConnector !== undefined
+    }
+
+    chainExists() {
+        return this._chain !== undefined
+    }
+
+    inBounds() {
+        return inBounds(this.a.shape) && inBounds(this.b.shape)
+    }
+
+    getIntersections(shape: AdultShape, line: paper.Path) {
+        const inter = line.getIntersections(shape.shape)
+        if (inter.length > 0)
+            return inter[0].point
+        else
+            return shape.position
+    }
+
+    get chain(): paper.Path | undefined {
+        return this._chain
+    }
+
+    set chain(chain: paper.Path) {
+        this._chain = chain
+        this.lineArr.push(chain)
     }
 }
