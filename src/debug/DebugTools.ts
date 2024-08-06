@@ -9,6 +9,7 @@ import {debugMode} from "../../Settings";
 const dotInfo = document.getElementById('dotInfo') as HTMLDivElement
 const searchBar = document.getElementById("dotSearch") as HTMLInputElement
 const searchList = document.getElementById("searchList") as HTMLUListElement
+const search  = document.getElementById("search") as HTMLDivElement
 const listItems = searchList.getElementsByTagName("li")
 
 let moving = true
@@ -20,6 +21,7 @@ export function enableDebugTools(shapeManager: ShapeManager) {
     mouseMove(shapeManager)
     mouseDown(shapeManager)
 
+    search.style.display = "flex"
     searchBar.value = ""
 
     searchItems()

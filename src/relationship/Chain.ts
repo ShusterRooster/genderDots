@@ -1,6 +1,6 @@
 import paper from "paper";
 import * as settings from "../../Settings"
-import {chainGrowSpeed, chainShrinkDelay, chainShrinkSpeed, chainThickness} from "../../Settings"
+import {chainGrowSpeed, chainShrinkDelay, chainShrinkSpeed} from "../../Settings"
 import AdultShape from "../AdultShape";
 import PathArray from "../PathArray";
 import {inBounds} from "../HelperFunctions";
@@ -16,11 +16,13 @@ export default class Chain {
     protected _chain?: paper.Path
     lineArr = new PathArray("lineArr")
     growDirection = 1
+    thickness: number
 
     constructor(a: AdultShape, b: AdultShape) {
         this.a = a
         this.b = b
         this.avgColor = this.a.color.add(this.b.color).divide(2)
+        this.thickness = (this.a.strokeWidth + this.b.strokeWidth) / 2
     }
 
     run() {
@@ -185,7 +187,7 @@ export default class Chain {
             to: this.a.position,
             strokeColor: this.a.color,
             strokeCap: 'round',
-            strokeWidth: chainThickness
+            strokeWidth: this.thickness
         })
 
         this.bConnector = new paper.Path.Line({
@@ -193,7 +195,7 @@ export default class Chain {
             to: this.b.position,
             strokeColor: this.b.color,
             strokeCap: 'round',
-            strokeWidth: chainThickness
+            strokeWidth: this.thickness
         })
     }
 
@@ -234,7 +236,7 @@ export default class Chain {
             to: startPts[1],
             strokeColor: this.avgColor,
             strokeCap: 'round',
-            strokeWidth: chainThickness
+            strokeWidth: this.thickness
         })
     }
 

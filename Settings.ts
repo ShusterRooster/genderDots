@@ -1,7 +1,7 @@
 /**
  * Enables the usage of EventLog.ts and UI debugging tools
  */
-export const debugMode = true
+export const debugMode = false
 
 /**
  * Uses TestMain instead of regular main for testing purposes.
@@ -28,8 +28,8 @@ export const sexes: Probability[] = [
     { name: "intersex", probability: 1.7 },
 ];
 
-export const minRadius: number = 15;
-export const maxRadius: number = 100;
+export let minRadius: number = 15;
+export let maxRadius: number = 100;
 
 /**
  * Ratio of genitalia to shape radius.
@@ -37,8 +37,8 @@ export const maxRadius: number = 100;
  */
 export const genitalDiv: number = 5;
 
-export const minVector: number = 0.25;
-export const maxVector: number = 8;
+export let minVector: number = 0.25;
+export let maxVector: number = 8;
 
 export const boostVector: number = 20
 export const maxBoostVector: number = 200;
@@ -111,12 +111,12 @@ export const minGray: number = 0.32
 /**
  * Minimum stroke thickness for shapes
  */
-export const minThickness: number = 1
+export let minThickness: number = 1
 
 /**
  * Maximum stroke thickness for shapes
  */
-export const maxThickness: number = 12
+export let maxThickness: number = 12
 
 //Relationship
 
@@ -156,12 +156,7 @@ export const attractionThreshold: number = 100;
 /**
  * Div of how fast shapes in ChainRelationships move based on pushing and pulling from the chain.
  */
-export const chainMoveDiv: number = 5
-
-/**
- * Stroke width of chains in any relationship.
- */
-export const chainThickness: number = 5
+export let chainMoveDiv: number = 5
 
 /**
  * Minimum length a chain can be before it is constrained.
@@ -176,12 +171,12 @@ export const maxChainLength: number = 450
 /**
  * How fast chains will grow to attach to each connector.
  */
-export const chainGrowSpeed: number = 15
+export let chainGrowSpeed: number = 15
 
 /**
  * How fast chains will shrink when the conditions are met.
  */
-export const chainShrinkSpeed: number = 5
+export let chainShrinkSpeed: number = 5
 
 /**
  * Timeout for chain shrinking because it is outside the main program loop.
@@ -252,3 +247,25 @@ export const maxTrailVector: number = 20
 export const trailOpacity: number = 0.33
 export const trailFadeSpeed: number = 0.08
 export const trailFadeDelay: number = 100
+
+
+//Initialization
+
+/**
+ * Adjusts settings by a scale factor
+ * @param adj adjustment factor for scaling
+ */
+export function adjustSettings(adj: number) {
+    minRadius *= adj
+    maxRadius *= adj
+
+    minVector *= adj
+    maxVector *= adj
+
+    minThickness *= adj
+    maxThickness *= adj
+
+    chainMoveDiv /= adj
+    chainGrowSpeed *= adj
+    chainShrinkSpeed *= adj
+}
