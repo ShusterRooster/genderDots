@@ -2,7 +2,7 @@ import paper from "paper";
 import {constrain} from "./HelperFunctions";
 import {enableDebugTools} from "./debug/DebugTools";
 import ShapeManager from "./ShapeManager";
-import {adjustSettings, debugMode, maxRadius, testingMode} from "../Settings";
+import {adjustSettings, debugMode, testingMode} from "../Settings";
 import {startTesting} from "./debug/TestMain";
 
 const search = document.getElementById("search") as HTMLDivElement
