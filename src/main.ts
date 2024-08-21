@@ -1,29 +1,62 @@
 import paper from "paper";
+import {constrain, limit, map} from "./HelperFunctions";
+import {enableDebugTools} from "./debug/DebugTools";
 import ShapeManager from "./ShapeManager";
-import {constrain} from "./HelperFunctions";
+import {debugMode, maxShapes, minShapes, testingMode} from "../Settings";
+import {startTesting} from "./debug/TestMain";
 
+const search = document.getElementById("search") as HTMLDivElement
+search.style.display = "none"
+
+/**
+ * Calculates scale of the screen compared to a width of 2000px.
+ * Scale is from 0.1 - 1.
+ */
 function calcScale() {
-    const maxRes = 2000
-    return constrain(window.innerWidth / maxRes, 0.1, 1)
+    const maxRes = 1080
+    const div = window.innerWidth / maxRes
+    return constrain(div * 1.5, 0.1, 1)
 }
 
 window.onload = function () {
     const canvas = document.getElementById('dotsCanvas') as HTMLCanvasElement
     paper.setup(canvas)
-    // paper.view.autoUpdate = false
 
-    let numWanted = 40
-    const width = window.innerWidth
-    console.log(width)
+    let scale = calcScale()
+    paper.view.scale(scale)
 
-    paper.view.scale(calcScale())
+    const standard = 1920 * 1080
+    let current = paper.view.bounds.area
 
-    const shapeManager = new ShapeManager(numWanted)
-    shapeManager.update()
+    paper.view.onResize = () => {
+        const diff = Math.abs(current - paper.view.bounds.area) / 100
 
-    paper.view.onResize = function () {
-        paper.view.viewSize = new paper.Size(window.innerWidth, window.innerHeight)
-        paper.view.scale(calcScale())
+        if(diff > 25) {
+            console.log("resized!!")
+            paper.view.scale(1 / scale)
+            scale = calcScale()
+            paper.view.scale(scale)
+        }
+
+        current = paper.view.bounds.area
     }
 
+    if(!testingMode) {
+        const ratio = limit(current / standard, 1)
+        let numWanted = Math.floor(map(ratio, 0.3, 1, minShapes, maxShapes))
+        console.log("ratio", ratio)
+        console.log("numWanted", numWanted)
+
+        const shapeManager = new ShapeManager(numWanted)
+
+        paper.view.onFrame = (event: {delta: number, time: number}) => {
+            shapeManager.update()
+        }
+
+        if(debugMode)
+            enableDebugTools(shapeManager)
+    }
+    else {
+        startTesting()
+    }
 }

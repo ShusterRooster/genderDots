@@ -1,12 +1,4 @@
-import paper from "paper";
-import ShapeManager from "./ShapeManager";
-
-export interface Probability {
-    name: string,
-    probability: number
-}
-
-export class PathArray {
+export default class PathArray {
     name: string
     arr: paper.Path[]
     cleanDist: number
@@ -50,15 +42,4 @@ export class PathArray {
         else
             console.log(`${this.name}: [${this.arr}]`)
     }
-}
-
-export interface babyShape {
-    dotManager?: ShapeManager;
-    spawnPoint?: paper.Point;
-    radius?: number;
-    distance?: number;
-    sex?: string;
-    genitalWidth?: number;
-    genitalEndHeight?: number;
-    color?: paper.Color;
 }
