@@ -1,6 +1,7 @@
 import paper from "paper";
 import ShapeManager from "./ShapeManager";
 import {
+    centerOpposite,
     colorDistance,
     constrain,
     delay,
@@ -126,13 +127,13 @@ export default class AdultShape {
             this.checkBounds()
         }
 
-        if(this.boosting) {
+        if (this.boosting) {
             const clone = this.shape.clone()
             clone.opacity = 0.25
             this.boostPaths.add(clone)
         }
 
-        if(this.boostPaths.size > 0) {
+        if (this.boostPaths.size > 0) {
             this.boost()
         }
 
@@ -140,7 +141,7 @@ export default class AdultShape {
             this.pointTowards(this.vector.angle)
         }
 
-        if(debugMode)
+        if (debugMode)
             this.pivotPoint!.position = this.pivot
     }
 
@@ -151,16 +152,15 @@ export default class AdultShape {
 
     checkBounds() {
         if (this.outOfBounds() && this.position) {
-            if(this.teleportAllowed) {
+            if (this.teleportAllowed) {
                 this.teleportOpposite()
                 this.teleportAllowed = false
 
                 setTimeout(() => {
                     this.teleportAllowed = true
                 }, this.timeOOB)
-            }
-            else {
-                if (performance.now() - this.lastTimeInBounds >= this.maxTimeOOB) {
+            } else {
+                if (performance.now() - this.lastTimeInBounds >= this.timeOOB + oobTolerance) {
                     this.eventLog?.create(`Stuck out of bounds at position ${this.position}`)
 
                     console.log(`${this.name} stuck out of bounds!!`)
@@ -177,9 +177,7 @@ export default class AdultShape {
     }
 
     teleportOpposite() {
-        const center = paper.view.center;
-        const dist = this.position.subtract(center).multiply(-1);
-        this.position = center.add(dist);
+        this.position = centerOpposite(this.pivot)
         this.lastTimeTeleported = performance.now()
     }
 
@@ -212,20 +210,33 @@ export default class AdultShape {
 
         if (absDiff < rotationTolerance) return
         const mod = map(absDiff, 0, 360, minRotationSpeed, maxRotationSpeed, true)
-        // console.log(diff)
+
         this.shape.rotate(mod * direction(diff), this.pivot)
         this.bounds.rotate(mod * direction(diff), this.pivot)
     }
 
-    arrive(target: paper.Point) {
-        let desired = target.subtract(this.position)
-        let d = desired.length
+    arrive(target: AdultShape) {
+        let desired = target.pivot.subtract(this.pivot)
 
-        const damped = desired.length = map(d, 0, this.radius, 0, maxVector);
-        desired.length = d < this.radius ? damped : maxVector
+        // let d = desired.length
+        // const damped = desired.length = map(d, 0, this.radius, 0, maxVector);
+        // desired.length = d < this.radius ? damped : maxVector
 
-        if(this.boosting)
-            desired.length = constrain(this.boostSpeed, 0, maxBoostVector)
+        //follow target oob
+        if (target.relationship) {
+            const revTarget = target.pivot.subtract(paper.view.center).multiply(-1)
+            const dist = revTarget.subtract(this.pivot)
+
+            console.log(dist.length)
+
+            if (dist.length <= target.radius + this.radius) {
+                desired = dist
+                console.log("will it follow OOB?")
+            }
+        }
+
+        let max = this.boosting ? maxBoostVector : maxVector
+        desired.length = constrain(this.boostSpeed, minVector, max)
 
         // Steering = Desired minus Velocity
         let steer = desired.subtract(this.velocity)
@@ -242,12 +253,9 @@ export default class AdultShape {
         }
     }
 
-    applyForce(force: paper.Point | undefined, heading = false) {
+    applyForce(force: paper.Point, heading = false) {
         const calc = force!.divide(this.size);
-
-        if (calc.length > maxVector)
-            calc.length = maxVector
-
+        calc.length = calc.length >= maxVector ? maxVector : calc.length
         this.acceleration = this.acceleration.add(calc);
 
         if (heading) this.pointTowards(force!.angle);
@@ -286,7 +294,7 @@ export default class AdultShape {
 
     updatePosition() {
         this.applyForce(this.calcDrag());
-        if(this.applyVector) this.applyForce(this.vector);
+        if (this.applyVector) this.applyForce(this.vector);
 
         this.velocity = this.velocity.add(this.acceleration);
         this.shape.position = this.shape.position.add(this.velocity);
@@ -314,7 +322,7 @@ export default class AdultShape {
         const diameter = this.radius * 2
         let height: number
 
-        if(sex == "female")
+        if (sex == "female")
             height = diameter
         else
             height = this.genitalHeight + diameter
@@ -337,15 +345,14 @@ export default class AdultShape {
         const diff = height - shapeBounds.height
         let pivot: paper.Point
 
-        if(sex == "female") {
+        if (sex == "female") {
             const offset = new paper.Point({
                 length: diff,
                 angle: this.rotation + 180
             })
 
             pivot = ideal.add(offset)
-        }
-        else if (sex == "intersex") {
+        } else if (sex == "intersex") {
             const interHeight = ((height - diff) + (diff / 2))
             const interDiff = interHeight - shapeBounds.height
 
@@ -353,8 +360,7 @@ export default class AdultShape {
                 length: interDiff + (diff / 2),
                 angle: this.rotation + 180
             }).add(ideal)
-        }
-        else {
+        } else {
             pivot = ideal
         }
 
@@ -372,10 +378,6 @@ export default class AdultShape {
             length: this.pivotOffset.length,
             angle: (this.rotation + 180) + (this.angleOffset / 2)
         }).add(this.position)
-    }
-
-    get maxTimeOOB() {
-        return this.timeOOB + oobTolerance
     }
 
     get boundsHeight() {
@@ -423,7 +425,7 @@ export default class AdultShape {
         this.timeOOB = this.timeTillOOB()
 
         this.eventLog?.create(`New vector set! ${vec}`)
-        this.eventLog?.create(`Max time out of bounds set to ${this.maxTimeOOB}`)
+        this.eventLog?.create(`Time out of bounds set to ${this.timeOOB}`)
     }
 
     get rotation() {
@@ -431,8 +433,6 @@ export default class AdultShape {
     }
 
     set rotation(rotation: number) {
-        // this.shape.rotation = rotation + 90
-
         const diff = this.adjustAngle(rotation) - this.shape.rotation
         this.shape.rotate(diff + 90, this.pivot)
     }

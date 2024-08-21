@@ -14,10 +14,8 @@ export interface Probability {
 }
 
 //Shapes
-/**
- * Number of shapes wanted when running the program
- */
-export const numWanted: number = 8
+export const minShapes: number = 20
+export const maxShapes: number = 40
 
 /**
  * Probability of each gender showing up in the program. Change as desired.
@@ -28,8 +26,8 @@ export const sexes: Probability[] = [
     { name: "intersex", probability: 1.7 },
 ];
 
-export let minRadius: number = 15;
-export let maxRadius: number = 100;
+export const minRadius: number = 15;
+export const maxRadius: number = 100;
 
 /**
  * Ratio of genitalia to shape radius.
@@ -37,14 +35,14 @@ export let maxRadius: number = 100;
  */
 export const genitalDiv: number = 5;
 
-export let minVector: number = 0.25;
-export let maxVector: number = 8;
+export const minVector: number = 0.25;
+export const maxVector: number = 8;
 
 export const boostVector: number = 20
-export const maxBoostVector: number = 200;
+export const maxBoostVector: number = 50;
 
 export const minRotationSpeed: number = 0.2
-export const maxRotationSpeed: number = 4;
+export const maxRotationSpeed: number = 6;
 
 /**
  * Tolerance of how accurate the angle needs to be when pointing towards it.
@@ -111,12 +109,12 @@ export const minGray: number = 0.32
 /**
  * Minimum stroke thickness for shapes
  */
-export let minThickness: number = 1
+export const minThickness: number = 1
 
 /**
  * Maximum stroke thickness for shapes
  */
-export let maxThickness: number = 12
+export const maxThickness: number = 12
 
 //Relationship
 
@@ -124,6 +122,8 @@ export let maxThickness: number = 12
  * Delay for running recursive loops to avoid too much recursion error.
  */
 export const recursiveDelay: number = 20
+
+export const seekDelay: number = 5
 
 /**
  * Chance of a shape being a loner.
@@ -134,7 +134,7 @@ export const lonerChance: number = 0.15;
 /**
  * How many milliseconds the ShapeManager wait to run openRelationships.
  */
-export const seekInterval: number = 1000
+export const seekInterval: number = 3000
 
 /**
  * Maximum partners any relationship instance is able to have.
@@ -144,7 +144,7 @@ export const maxPartners: number = 6;
 /**
  * Probability of a relationship stealing a shape that is in another relationship.
  */
-export const stealChance: number = 0.50;
+export const stealChance: number = 0.40;
 
 /**
  * The calculated color diff between two shapes must match up to this value
@@ -156,7 +156,7 @@ export const attractionThreshold: number = 100;
 /**
  * Div of how fast shapes in ChainRelationships move based on pushing and pulling from the chain.
  */
-export let chainMoveDiv: number = 5
+export const chainMoveDiv: number = 5
 
 /**
  * Minimum length a chain can be before it is constrained.
@@ -171,12 +171,12 @@ export const maxChainLength: number = 450
 /**
  * How fast chains will grow to attach to each connector.
  */
-export let chainGrowSpeed: number = 15
+export const chainGrowSpeed: number = 15
 
 /**
  * How fast chains will shrink when the conditions are met.
  */
-export let chainShrinkSpeed: number = 5
+export const chainShrinkSpeed: number = 5
 
 /**
  * Timeout for chain shrinking because it is outside the main program loop.
@@ -247,25 +247,3 @@ export const maxTrailVector: number = 20
 export const trailOpacity: number = 0.33
 export const trailFadeSpeed: number = 0.08
 export const trailFadeDelay: number = 100
-
-
-//Initialization
-
-/**
- * Adjusts settings by a scale factor
- * @param adj adjustment factor for scaling
- */
-export function adjustSettings(adj: number) {
-    minRadius *= adj
-    maxRadius *= adj
-
-    minVector *= adj
-    maxVector *= adj
-
-    minThickness *= adj
-    maxThickness *= adj
-
-    chainMoveDiv /= adj
-    chainGrowSpeed *= adj
-    chainShrinkSpeed *= adj
-}

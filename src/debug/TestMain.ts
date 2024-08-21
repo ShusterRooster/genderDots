@@ -1,26 +1,30 @@
-import TestShape from "../TestShape";
 import paper from "paper";
+import TestShape from "./TestShape";
 
 export function startTesting() {
-    const rotation = 90
-    const sex = "male"
-    const genWidth = 100
+    const center = paper.view.center
+    const bounds = paper.view.bounds
+    const offset = new paper.Point(300, 100)
+
+    const spawn1 = bounds.topLeft.add(offset)
+    const spawn2 = bounds.bottomRight.subtract(offset)
 
     const test = new TestShape({
-        spawnPoint: paper.view.center,
-        rotation: rotation,
-        sex: sex,
-        strokeWidth: 1,
-        genitalWidth: genWidth,
-        genitalEndHeight: 25
+        // spawnPoint: spawn1,
+        // rotation: 90 + 90
+    })
+    const test2 = new TestShape({
+        // spawnPoint: spawn2
     })
 
     paper.view.onFrame = function () {
+        test.seek2(test2)
         test.run()
+
+        test2.run()
     }
 
     window.onmousemove = function (e: MouseEvent) {
-        test.setCursor(e.clientX, e.clientY)
     }
 
     let moving = true

@@ -86,7 +86,7 @@ export default class OrbitRelationship extends Relationship {
         if(this.boundsRect)
             this.boundsRect.position = this.leader.position
 
-        if(this.readyToTeleport()) {
+        if(this.outOfBounds()) {
             this.checkOOB()
         }
         else {
@@ -212,7 +212,7 @@ export default class OrbitRelationship extends Relationship {
         })
     }
 
-    readyToTeleport() {
+    outOfBounds() {
         if(!outOfBounds(this.path))
             return false
 

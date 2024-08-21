@@ -10,7 +10,7 @@ export function removeFromArray(arr: any[], obj: any) {
  * Checks if a given probability is solved true. Uses Math.random()
  * @param prob Number between 0 - 1
  */
-export function determineProb(prob: number){
+export function determineProb(prob: number) {
     return (Math.random()) <= prob
 }
 
@@ -55,7 +55,7 @@ export function generateID(obj: AdultShape | Relationship, check: Set<AdultShape
     }
 
     for (const obj of check) {
-        if(obj.name == str) {
+        if (obj.name == str) {
             generateID(obj, check, length)
         }
     }
@@ -81,7 +81,7 @@ export function random(min: number, max: number) {
  * Returns random object from a given array.
  * @param arr
  */
-export function randomFromArr(arr: any[]){
+export function randomFromArr(arr: any[]) {
     return arr[Math.floor((Math.random() * arr.length))];
 }
 
@@ -100,8 +100,12 @@ export function createInstance<T>(ctor: new (...args: any[]) => T, ...args: any[
  * @param low
  * @param high
  */
-export function constrain (n: number, low: number, high: number) {
+export function constrain(n: number, low: number, high: number) {
     return Math.max(Math.min(n, high), low);
+}
+
+export function limit(n: number, limit: number) {
+    return n >= limit ? limit : n
 }
 
 
@@ -179,7 +183,7 @@ export function pythag(a: number, b: number) {
     return Math.sqrt((a ** 2) + (b ** 2))
 }
 
-export function testLine(from: paper.Point, to: paper.Point,  color = "red", width = 3) {
+export function testLine(from: paper.Point, to: paper.Point, color = "red", width = 3) {
     return new paper.Path.Line({
         from: from,
         to: to,
@@ -198,7 +202,7 @@ export function testLength(start: paper.Point, length: number, angle: number, co
     return testLine(start, point, color, width)
 }
 
-export function testDot(center: paper.Point, radius = 3, color = "green") {
+export function testDot(center: paper.Point, radius = 3, color: string | paper.Color = "green") {
     return new paper.Path.Circle({
         center: center,
         radius: radius,
@@ -206,10 +210,57 @@ export function testDot(center: paper.Point, radius = 3, color = "green") {
     })
 }
 
-export function direction(n: number) {
-    return n < 0 ? -1 : 1;
+export function centerOpposite(point: paper.Point, center = paper.view.center) {
+    const dist = point.subtract(center).multiply(-1);
+    return center.add(dist);
 }
 
-export function log(name: string, value: any){
-    console.log(`${name}: ${value}`);
+export function endPoint(start: paper.Point, length: number, angle: number) {
+    return new paper.Point({
+        length: length,
+        angle: angle
+    }).add(start)
+}
+
+export function nearestBounds(point: paper.Point): [paper.Point, paper.Point] {
+    const bounds = paper.view.bounds
+    const center = paper.view.center
+
+    const xBounds = point.clone()
+    const yBounds = point.clone()
+
+    yBounds.y = point.y > center.y ? bounds.bottom : 0
+    xBounds.x = point.x > center.x ? bounds.right : 0
+
+    return [xBounds, yBounds]
+}
+
+export function oldNearestBounds(p: paper.Point) {
+    const bounds = paper.view.bounds
+    const center = paper.view.center
+
+    const diff = p.subtract(center)
+    const absDiff = center.subtract(diff.abs())
+    const point = p.clone()
+
+    if (absDiff.y < absDiff.x)
+        point.y = point.y > center.y ? bounds.bottom : 0
+    else
+        point.x = point.x > center.x ? bounds.right : 0
+
+    return point
+}
+
+export function constrainPoint(point: paper.Point,
+                               minX: number, minY: number,
+                               maxX: number, maxY: number) {
+
+    const p = point.clone()
+    p.x = constrain(p.x, minX, maxX)
+    p.y = constrain(p.y, minY, maxY)
+    return p
+}
+
+export function direction(n: number) {
+    return n < 0 ? -1 : 1;
 }

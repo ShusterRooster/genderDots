@@ -85,7 +85,7 @@ export default abstract class Relationship {
     /**
      * Determines if a relationship is ready to teleport when it meets certain criteria. Varies by relationship type
      */
-    readyToTeleport() {
+    outOfBounds() {
         for (const shape of this.partners) {
             if (!shape.outOfBounds()) {
                 return false
