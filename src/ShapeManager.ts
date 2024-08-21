@@ -3,7 +3,6 @@ import {createInstance, randomFromArr} from "./HelperFunctions";
 import {seekInterval} from "../Settings";
 import BabyShape from "./BabyShape";
 import AdultShape from "./AdultShape";
-import {addSearchData, removeSearchData} from "./debug/DebugTools";
 import SeekRelationship from "./relationship/SeekRelationship";
 import ChainRelationship from "./relationship/ChainRelationship";
 
@@ -78,10 +77,6 @@ export default class ShapeManager {
                         const rand = randomFromArr(ShapeManager.relationshipTypes)
                         const rel: Relationship = createInstance(rand, [a, b], this)
                         this.addRelationship(rel)
-                        addSearchData(rel, this)
-
-                        a.eventLog?.create(`Initial Relationship is ${rel.name}`, rel)
-                        b.eventLog?.create(`Initial Relationship is ${rel.name}`, rel)
                     }
                 }
             }
@@ -100,8 +95,6 @@ export default class ShapeManager {
         this.adults.add(adult)
         baby.shape.remove()
         this.initRelationships()
-
-        addSearchData(adult, this)
     }
 
     /**
@@ -132,11 +125,6 @@ export default class ShapeManager {
     removeRelationship(relationship: Relationship) {
         this.relationships.delete(relationship)
         this.removeFromOpen(relationship)
-        removeSearchData(relationship)
-
-        // if(this.relationships.size <= minRelationships) {
-        //     this.initRelationships()
-        // }
     }
 
 

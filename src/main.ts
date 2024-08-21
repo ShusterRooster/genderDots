@@ -1,12 +1,7 @@
 import paper from "paper";
 import {constrain, limit, map} from "./HelperFunctions";
-import {enableDebugTools} from "./debug/DebugTools";
 import ShapeManager from "./ShapeManager";
-import {debugMode, maxShapes, minShapes, testingMode} from "../Settings";
-import {startTesting} from "./debug/TestMain";
-
-const search = document.getElementById("search") as HTMLDivElement
-search.style.display = "none"
+import {maxShapes, minShapes} from "../Settings";
 
 /**
  * Calculates scale of the screen compared to a width of 2000px.
@@ -31,8 +26,7 @@ window.onload = function () {
     paper.view.onResize = () => {
         const diff = Math.abs(current - paper.view.bounds.area) / 100
 
-        if(diff > 25) {
-            console.log("resized!!")
+        if (diff > 25) {
             paper.view.scale(1 / scale)
             scale = calcScale()
             paper.view.scale(scale)
@@ -41,22 +35,13 @@ window.onload = function () {
         current = paper.view.bounds.area
     }
 
-    if(!testingMode) {
-        const ratio = limit(current / standard, 1)
-        let numWanted = Math.floor(map(ratio, 0.3, 1, minShapes, maxShapes))
-        console.log("ratio", ratio)
-        console.log("numWanted", numWanted)
+    const ratio = limit(current / standard, 1)
+    let numWanted = Math.floor(map(ratio, 0.3, 1, minShapes, maxShapes))
 
-        const shapeManager = new ShapeManager(numWanted)
+    const shapeManager = new ShapeManager(numWanted)
 
-        paper.view.onFrame = (event: {delta: number, time: number}) => {
-            shapeManager.update()
-        }
-
-        if(debugMode)
-            enableDebugTools(shapeManager)
+    paper.view.onFrame = () => {
+        shapeManager.update()
     }
-    else {
-        startTesting()
-    }
+
 }

@@ -57,9 +57,6 @@ export default class SeekRelationship extends Relationship {
                 }, this.timeTillOOB)
             }
             else if (performance.now() - this.lastTimeInBounds >= this.timeTillOOB + oobTolerance) {
-                this.eventLog?.create(`Stuck out of bounds! Leader position is ${this.leader.position}`)
-                console.log(`${this.name} stuck out of bounds!!!`)
-
                 this.leader.shape.opacity = 0
                 this.leader.position = paper.Point.random().multiply(paper.view.viewSize);
                 this.leader.fadeInOOB()
@@ -149,12 +146,10 @@ export default class SeekRelationship extends Relationship {
     insideRel(shape: AdultShape, arriveBy: number) {
         return new Promise(async (resolve, reject) => {
             if (shape?.relationship !== this) {
-                this.eventLog?.create(`Shape seeking no longer valid, shape ${shape.name} no longer in relationship`, shape)
                 shape.generateVector()
                 reject("SeekRelationship: shape no longer in relationship")
                 return
             } else if (this.leader == shape) {
-                this.eventLog?.create(`${shape.name} seeking inside relationship is leader, process stopped`, shape)
                 shape.generateVector()
                 reject("Leader stopped from going into seek relationship")
                 return
@@ -170,7 +165,6 @@ export default class SeekRelationship extends Relationship {
 
                 if (dist <= shape.velocity.length * 1.5) {
                     await delay(seekDelay)
-                    this.eventLog?.create(`${shape.name} successfully inside SeekRelationship!`, shape)
                     resolve(true);
                 } else {
                     this.seek(shape)
@@ -178,7 +172,6 @@ export default class SeekRelationship extends Relationship {
                     this.insideRel(shape, arriveBy).then(resolve, reject)
                 }
             } else {
-                console.log("does this ever happen")
                 await delay(seekDelay)
                 this.insideRel(shape, arriveBy).then(resolve, reject)
             }
@@ -186,15 +179,7 @@ export default class SeekRelationship extends Relationship {
     }
 
     removeInside(partner: AdultShape) {
-        this.eventLog?.create(`removeInside: ${partner.name} to be removed from inside!`, [partner, this.inside])
-        const result = this.inside.delete(partner)
-
-        if (result)
-            this.eventLog?.create(`removeInside: ${partner.name} found and removed successfully from inside Set!`, [partner, this.inside])
-        else
-            this.eventLog?.create(`removeInside: ${partner.name} does not exist in set and was not removed.`, [partner, this.inside])
-
-        return result
+        return this.inside.delete(partner)
     }
 
     maxTimeArrive(shape: AdultShape) {
@@ -219,7 +204,6 @@ export default class SeekRelationship extends Relationship {
         super.applyRelationshipStart(shape);
 
         if (shape == this.leader) {
-            this.eventLog?.create(`${shape.name} is leader, skipping insideRel!`, shape)
             shape.applyVector = true
             shape.teleport = false
             shape.boosting = false
@@ -233,7 +217,6 @@ export default class SeekRelationship extends Relationship {
             shape.teleport = false
             shape.boosting = false
             this.inside.add(shape)
-            this.eventLog?.create(`${shape.name} added into inside Set`, [shape, this.inside])
             this.updateTimeOOB()
         })
     }
@@ -282,7 +265,6 @@ export default class SeekRelationship extends Relationship {
 
         this.boundsDist = this.calcBoundsDist()
         this.timeTillOOB = this.leader.timeTillOOB(true, this.calcBoundsDist())
-        this.eventLog?.create(`Time OOB updated! bounds: ${this.boundsDist}, timeTillOOB: ${this.timeTillOOB}`)
     }
 
     get active() {
@@ -298,7 +280,6 @@ export default class SeekRelationship extends Relationship {
     set leader(leader) {
         this._leader = leader
 
-        this.eventLog?.create(`Leader chosen as ${leader.name}`, leader)
         leader.teleport = false
         leader.boosting = false
         leader.applyVector = true

@@ -10,8 +10,7 @@ import {
     map,
     outOfBounds,
     pythag,
-    random,
-    testDot
+    random
 } from "./HelperFunctions";
 import Relationship from "./relationship/Relationship";
 import {
@@ -19,7 +18,6 @@ import {
     boostVector,
     debugMode,
     friction,
-    maxBoostVector,
     maxRotationSpeed,
     maxVector,
     minRotationSpeed,
@@ -29,7 +27,6 @@ import {
     rotationTolerance,
 } from "../Settings"
 import BabyShape from "./BabyShape";
-import EventLog from "./debug/EventLog";
 
 export default class AdultShape {
     name: string
@@ -68,7 +65,6 @@ export default class AdultShape {
     boostSpeed = boostVector
 
     isLoner: boolean
-    eventLog?: EventLog
 
     pivotOffset: paper.Point
     angleOffset: number
@@ -101,12 +97,6 @@ export default class AdultShape {
         this._vector = this.generateFirstVector()
         this.shapeManager?.babyToAdult(baby, this)
         this.timeOOB = this.timeTillOOB(true)
-
-        if (debugMode) {
-            this.eventLog = new EventLog(this)
-            this.eventLog.create(`${this.name} successfully initialized!`)
-            this.pivotPoint = testDot(this.pivot)
-        }
     }
 
     attractedTo(other: AdultShape): boolean {
@@ -161,10 +151,6 @@ export default class AdultShape {
                 }, this.timeOOB)
             } else {
                 if (performance.now() - this.lastTimeInBounds >= this.timeOOB + oobTolerance) {
-                    this.eventLog?.create(`Stuck out of bounds at position ${this.position}`)
-
-                    console.log(`${this.name} stuck out of bounds!!`)
-
                     this.shape.opacity = 0
                     this.position = paper.Point.random().multiply(paper.view.viewSize);
                     this.fadeInOOB()
@@ -213,35 +199,6 @@ export default class AdultShape {
 
         this.shape.rotate(mod * direction(diff), this.pivot)
         this.bounds.rotate(mod * direction(diff), this.pivot)
-    }
-
-    arrive(target: AdultShape) {
-        let desired = target.pivot.subtract(this.pivot)
-
-        // let d = desired.length
-        // const damped = desired.length = map(d, 0, this.radius, 0, maxVector);
-        // desired.length = d < this.radius ? damped : maxVector
-
-        //follow target oob
-        if (target.relationship) {
-            const revTarget = target.pivot.subtract(paper.view.center).multiply(-1)
-            const dist = revTarget.subtract(this.pivot)
-
-            console.log(dist.length)
-
-            if (dist.length <= target.radius + this.radius) {
-                desired = dist
-                console.log("will it follow OOB?")
-            }
-        }
-
-        let max = this.boosting ? maxBoostVector : maxVector
-        desired.length = constrain(this.boostSpeed, minVector, max)
-
-        // Steering = Desired minus Velocity
-        let steer = desired.subtract(this.velocity)
-        this.applyForce(steer);
-        this.pointTowards(desired.angle)
     }
 
     boost() {
@@ -389,7 +346,6 @@ export default class AdultShape {
     }
 
     set relationship(relationship: Relationship | undefined) {
-        this.eventLog?.create(`Relationship ${relationship?.name} set!`, relationship)
         this._relationship = relationship
     }
 
@@ -398,7 +354,6 @@ export default class AdultShape {
     }
 
     set pendingRelationship(relationship: Relationship | undefined) {
-        this.eventLog?.create(`Pending relationship set as ${relationship?.name}!`, relationship)
         this._pendingRelationship = relationship
     }
 
@@ -423,9 +378,6 @@ export default class AdultShape {
 
         const vec = this._vector = new paper.Point({length: len, angle: vector.angle});
         this.timeOOB = this.timeTillOOB()
-
-        this.eventLog?.create(`New vector set! ${vec}`)
-        this.eventLog?.create(`Time out of bounds set to ${this.timeOOB}`)
     }
 
     get rotation() {

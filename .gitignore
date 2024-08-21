@@ -5,7 +5,7 @@
 .npm
 *.tsbuildinfo
 # Directories
-dist/           # This is the build process will output code.
+/node_modules/   # The original reason we're here!
 node_modules/   # The original reason we're here!
 # Env files      # A good safeguard against accidentally publishing
 .env.           #  private information, including security keys
@@ -17,3 +17,4 @@ npm-debug.log*
 # Misc files
 .DS_Store       # Macs often create this file
 notes.md        # Personal project notes, not my reference.
+/.parcel-cache/

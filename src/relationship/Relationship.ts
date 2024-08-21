@@ -1,8 +1,7 @@
 import {delay, determineProb, generateID, getAttrFromArray, random, randomFromArr} from "../HelperFunctions";
-import {debugMode, maxPartners, recursiveDelay, stealChance} from "../../Settings";
+import {maxPartners, recursiveDelay, stealChance} from "../../Settings";
 import ShapeManager from "../ShapeManager";
 import AdultShape from "../AdultShape";
-import EventLog from "../debug/EventLog";
 
 /**
  * Base class for Relationships. Functionality added through extending class.
@@ -17,7 +16,6 @@ export default abstract class Relationship {
      * Boolean for determining whether a relationship is open (accepting of new partners)
      */
     open: boolean
-    eventLog?: EventLog
 
     protected constructor(
         partners: AdultShape[],
@@ -27,11 +25,6 @@ export default abstract class Relationship {
         this.shapeManager = shapeManager
         this.open = this.checkOpen()
         this.name = generateID(this, this.shapeManager.relationships)
-
-        if (debugMode) {
-            this.eventLog = new EventLog(this)
-            this.eventLog.create(`Relationship initialized`)
-        }
     }
 
     /**
@@ -96,8 +89,6 @@ export default abstract class Relationship {
     }
 
     teleportAll() {
-        this.eventLog?.create(`Partners teleported opposite!`)
-
         for (const part of this.partners) {
             part.teleportOpposite()
         }
@@ -105,21 +96,17 @@ export default abstract class Relationship {
 
     lookForLove() {
         const shape = randomFromArr(Array.from(this.shapeManager.adults))
-        this.eventLog?.create(`Looking for love!: ${shape.name}`, shape)
 
         if (this.partners.has(shape)) {
-            this.eventLog?.create(`Looking for love failed: ${shape.name} already here`, shape)
             return;
         }
 
         if (shape.isLoner) {
-            this.eventLog?.create(`Looking for love failed: ${shape.name} isLoner`, shape)
             return;
         }
 
         if (shape.inRelationship) {
             if (determineProb(stealChance)) {
-                this.eventLog?.create(`Steal chance won!`)
                 this.addPartner(shape)
                 return
             }
@@ -130,15 +117,12 @@ export default abstract class Relationship {
     }
 
     async addPartner(partner: AdultShape) {
-        this.eventLog?.create(`addPartner check!, ${partner.name}!`, partner)
 
         if (partner.isLoner) {
-            this.eventLog?.create(`failed addPartner ${partner.name}, isLoner`, partner)
             return false
         }
 
         if (partner.pending) {
-            this.eventLog?.create(`failed addPartner: ${partner.name} in pending relationship`, partner)
             return false
         }
 
@@ -146,25 +130,19 @@ export default abstract class Relationship {
             !this.partners.has(partner) &&
             this.allMutual(partner)) {
 
-            this.eventLog?.create(`addPartner: Waiting for ${partner.name} to be in bounds.`, partner)
             partner.pendingRelationship = this
 
             partner.promiseInBounds().then(() => {
-                this.eventLog?.create(`addPartner: ${partner.name} inside bounds, adding partner...`, partner)
                 this.removePartnerGlobal(partner, this).then(() => {
                     this.partners.add(partner)
                     this.applyRelationshipStart(partner)
                     partner.pendingRelationship = undefined
-
-                    this.eventLog?.create(`Succeed! Added partner ${partner.name}!`, partner)
-                    partner.eventLog?.create(`Successfully added to ${this.name}!`, this)
 
                     this.checkOpen()
                     return true
                 })
             })
         } else {
-            this.eventLog?.create(`addPartner failed!, ${partner.name}!`, partner)
             return false
         }
 
@@ -174,24 +152,16 @@ export default abstract class Relationship {
     async removePartner(partner: AdultShape, relationship: Relationship) {
         if (this.partners.has(partner)) {
 
-            this.eventLog?.create(`removePartner: ${relationship.name} requesting to remove ${partner.name}`, [relationship, partner])
 
             if (this.partners.size - 1 == 0) {
-                this.eventLog?.create(`Partner size will be zero, ending relationship!`)
                 this.endRelationship()
                 return false
             }
 
-            this.eventLog?.create(`removePartner: Waiting for ${partner.name} to be in bounds.`, partner)
             partner.promiseInBounds().then(() => {
-                this.eventLog?.create(`removePartner: ${partner.name} inside bounds! Removing...`, partner)
-
                 this.partners.delete(partner)
                 this.applyRelationshipEnd(partner)
                 this.checkOpen()
-
-                this.eventLog?.create(`Partner removed! ${partner.name}`, partner)
-                partner.eventLog?.create(`Shape removed from ${this.name}!`, this)
 
                 return true
             })
@@ -201,18 +171,12 @@ export default abstract class Relationship {
     }
 
     async removePartnerGlobal(partner: AdultShape, relationship: Relationship) {
-        this.eventLog?.create(`removePartnerGlobal() Started`, partner)
-
         for (const rel of this.shapeManager.relationships) {
             if (rel == this)
                 continue
 
             if (rel.partners.has(partner)) {
                 rel.removePartner(partner, relationship).then(() => {
-                    this.eventLog?.create(
-                        `${partner.name} has been removed from ${rel.name}`,
-                        [partner, rel])
-
                     return
                 })
             }
@@ -227,8 +191,6 @@ export default abstract class Relationship {
      */
     applyRelationshipStart(shape: AdultShape) {
         shape.relationship = this;
-        this.eventLog?.create(`Applied relationship start, ${shape.name}`, shape)
-        shape.eventLog?.create(`Applied relationship start from ${this.name}`, this)
     }
 
     /**
@@ -237,21 +199,15 @@ export default abstract class Relationship {
      */
     applyRelationshipEnd(shape: AdultShape) {
         shape.relationship = undefined;
-        this.eventLog?.create(`Applied relationship end, ${shape.name}`, shape)
-        shape.eventLog?.create(`Applied relationship end from ${this.name}`, this)
     }
 
     applyStartRelationshipAll() {
-        this.eventLog?.create(`Relationship start applied to all!`)
-
         for (const shape of this.partners) {
             this.applyRelationshipStart(shape);
         }
     }
 
     applyEndRelationshipAll() {
-        this.eventLog?.create(`Relationship end applied to all!`)
-
         for (const shape of this.partners) {
             this.applyRelationshipEnd(shape);
         }
@@ -282,15 +238,7 @@ export default abstract class Relationship {
     }
 
     endRelationship() {
-        this.eventLog?.create("endRelationship: waiting for all partners in bounds!", this)
-
         this.promiseInBounds().then(() => {
-            this.eventLog?.create("Relationship ended :(", this)
-
-            for (const partner of this.partners) {
-                partner.eventLog?.create(`${this.name} has ended.`, this)
-            }
-
             this.applyEndRelationshipAll()
             this.shapeManager?.removeRelationship(this)
         })
